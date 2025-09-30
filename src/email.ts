@@ -1,0 +1,552 @@
+import * as nodemailer from 'nodemailer';
+import * as imaps from 'imap-simple';
+
+// Email interfaces
+export interface EmailConfig {
+    smtp: {
+        host: string;
+        port: number;
+        secure: boolean;
+        auth: {
+            user: string;
+            pass: string;
+        };
+    };
+    imap: {
+        host: string;
+        port: number;
+        tls: boolean;
+        auth: {
+            user: string;
+            pass: string;
+        };
+        markSeen: boolean;
+    };
+}
+
+export interface EmailMessage {
+    id: string;
+    from: string;
+    to: string[];
+    cc?: string[];
+    bcc?: string[];
+    subject: string;
+    body: string;
+    html?: string;
+    attachments?: Attachment[];
+    date: Date;
+    flags: string[];
+    priority?: 'high' | 'normal' | 'low';
+}
+
+export interface Attachment {
+    filename: string;
+    content: Buffer | string;
+    contentType?: string;
+    path?: string;
+    cid?: string;
+}
+
+export interface Contact {
+    id: string;
+    name: string;
+    email: string;
+    group?: string;
+}
+
+export interface EmailFilter {
+    from?: string;
+    to?: string;
+    subject?: string;
+    since?: Date;
+    before?: Date;
+    seen?: boolean;
+    flagged?: boolean;
+    hasAttachment?: boolean;
+}
+
+export interface SearchResult {
+    emails: EmailMessage[];
+    total: number;
+    page: number;
+    limit: number;
+}
+
+// Email service class
+export class EmailService {
+    private config: EmailConfig;
+    private transporter?: nodemailer.Transporter;
+    private imapConnection?: any;
+
+    constructor(config: EmailConfig) {
+        this.config = config;
+    }
+
+    // Initialize SMTP transporter
+    private async initializeTransporter(): Promise<nodemailer.Transporter> {
+        if (!this.transporter) {
+            this.transporter = nodemailer.createTransport(this.config.smtp);
+        }
+        return this.transporter;
+    }
+
+    // Initialize IMAP connection
+    private async initializeIMAP(): Promise<any> {
+        if (!this.imapConnection) {
+            this.imapConnection = await imaps.connect({
+                imap: {
+                    ...this.config.imap,
+                    user: this.config.imap.auth.user,
+                    password: this.config.imap.auth.pass
+                }
+            });
+        }
+        return this.imapConnection;
+    }
+
+    // === BASIC EMAIL OPERATIONS ===
+
+    /**
+     * Send a simple email
+     */
+    async sendEmail(to: string | string[], subject: string, body: string, html?: string): Promise<{ messageId: string; response: string }> {
+        const transporter = await this.initializeTransporter();
+        
+        const mailOptions = {
+            from: this.config.smtp.auth.user,
+            to: Array.isArray(to) ? to.join(', ') : to,
+            subject,
+            text: body,
+            html: html || body
+        };
+
+        const result = await transporter.sendMail(mailOptions);
+        return {
+            messageId: result.messageId,
+            response: result.response
+        };
+    }
+
+    /**
+     * Send email with attachments
+     */
+    async sendEmailWithAttachments(
+        to: string | string[], 
+        subject: string, 
+        body: string, 
+        attachments: Attachment[], 
+        html?: string
+    ): Promise<{ messageId: string; response: string }> {
+        const transporter = await this.initializeTransporter();
+        
+        const mailOptions = {
+            from: this.config.smtp.auth.user,
+            to: Array.isArray(to) ? to.join(', ') : to,
+            subject,
+            text: body,
+            html: html || body,
+            attachments: attachments.map(att => ({
+                filename: att.filename,
+                content: att.content,
+                contentType: att.contentType,
+                path: att.path,
+                cid: att.cid
+            }))
+        };
+
+        const result = await transporter.sendMail(mailOptions);
+        return {
+            messageId: result.messageId,
+            response: result.response
+        };
+    }
+
+    /**
+     * Read recent emails from inbox
+     */
+    async readRecentEmails(count: number = 10): Promise<EmailMessage[]> {
+        const connection = await this.initializeIMAP();
+        
+        await connection.openBox('INBOX');
+        const searchCriteria = ['ALL'];
+        const fetchOptions = {
+            bodies: 'HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE)',
+            markSeen: this.config.imap.markSeen,
+            struct: true
+        };
+
+        const messages = await connection.search(searchCriteria, fetchOptions);
+        const recentMessages = messages.slice(-count).reverse();
+
+        return recentMessages.map((message: any) => this.parseEmailMessage(message));
+    }
+
+    /**
+     * Get email by ID
+     */
+    async getEmailById(emailId: string): Promise<EmailMessage | null> {
+        const connection = await this.initializeIMAP();
+        
+        await connection.openBox('INBOX');
+        const searchCriteria = [['UID', emailId]];
+        const fetchOptions = {
+            bodies: '',
+            markSeen: false,
+            struct: true
+        };
+
+        const messages = await connection.search(searchCriteria, fetchOptions);
+        return messages.length > 0 ? this.parseEmailMessage(messages[0]) : null;
+    }
+
+    /**
+     * Delete email by ID
+     */
+    async deleteEmail(emailId: string): Promise<boolean> {
+        try {
+            const connection = await this.initializeIMAP();
+            
+            await connection.openBox('INBOX');
+            await connection.addFlags(emailId, '\\Deleted');
+            await connection.expunge();
+            
+            return true;
+        } catch (error) {
+            console.error('Error deleting email:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Mark email as read/unread
+     */
+    async markEmailAsRead(emailId: string, read: boolean = true): Promise<boolean> {
+        try {
+            const connection = await this.initializeIMAP();
+            
+            await connection.openBox('INBOX');
+            if (read) {
+                await connection.addFlags(emailId, '\\Seen');
+            } else {
+                await connection.delFlags(emailId, '\\Seen');
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('Error marking email:', error);
+            return false;
+        }
+    }
+
+    // === ADVANCED EMAIL OPERATIONS ===
+
+    /**
+     * Search emails with filters
+     */
+    async searchEmails(filter: EmailFilter, page: number = 1, limit: number = 10): Promise<SearchResult> {
+        const connection = await this.initializeIMAP();
+        
+        await connection.openBox('INBOX');
+        
+        // Build search criteria
+        const searchCriteria: any[] = [];
+        
+        if (filter.from) searchCriteria.push(['FROM', filter.from]);
+        if (filter.to) searchCriteria.push(['TO', filter.to]);
+        if (filter.subject) searchCriteria.push(['SUBJECT', filter.subject]);
+        if (filter.since) searchCriteria.push(['SINCE', filter.since]);
+        if (filter.before) searchCriteria.push(['BEFORE', filter.before]);
+        if (filter.seen !== undefined) {
+            searchCriteria.push(filter.seen ? ['SEEN'] : ['UNSEEN']);
+        }
+        if (filter.flagged !== undefined) {
+            searchCriteria.push(filter.flagged ? ['FLAGGED'] : ['UNFLAGGED']);
+        }
+
+        const fetchOptions = {
+            bodies: 'HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE)',
+            markSeen: false,
+            struct: true
+        };
+
+        const messages = await connection.search(searchCriteria.length > 0 ? searchCriteria : ['ALL'], fetchOptions);
+        
+        // Pagination
+        const total = messages.length;
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const paginatedMessages = messages.slice(startIndex, endIndex);
+
+        const emails = paginatedMessages.map((message: any) => this.parseEmailMessage(message));
+
+        return {
+            emails,
+            total,
+            page,
+            limit
+        };
+    }
+
+    /**
+     * Forward an email
+     */
+    async forwardEmail(emailId: string, to: string | string[], additionalMessage?: string): Promise<{ messageId: string; response: string }> {
+        const originalEmail = await this.getEmailById(emailId);
+        if (!originalEmail) {
+            throw new Error('Email not found');
+        }
+
+        const forwardSubject = `Fwd: ${originalEmail.subject}`;
+        const forwardBody = `${additionalMessage || ''}\n\n---------- Forwarded message ----------\n` +
+            `From: ${originalEmail.from}\n` +
+            `Date: ${originalEmail.date}\n` +
+            `Subject: ${originalEmail.subject}\n` +
+            `To: ${originalEmail.to.join(', ')}\n\n` +
+            `${originalEmail.body}`;
+
+        return await this.sendEmail(to, forwardSubject, forwardBody);
+    }
+
+    /**
+     * Reply to an email
+     */
+    async replyToEmail(emailId: string, replyBody: string, replyAll: boolean = false): Promise<{ messageId: string; response: string }> {
+        const originalEmail = await this.getEmailById(emailId);
+        if (!originalEmail) {
+            throw new Error('Email not found');
+        }
+
+        const replySubject = originalEmail.subject.startsWith('Re:') 
+            ? originalEmail.subject 
+            : `Re: ${originalEmail.subject}`;
+
+        const recipients = replyAll 
+            ? [originalEmail.from, ...originalEmail.to, ...(originalEmail.cc || [])]
+            : [originalEmail.from];
+
+        const fullReplyBody = `${replyBody}\n\nOn ${originalEmail.date}, ${originalEmail.from} wrote:\n${originalEmail.body}`;
+
+        return await this.sendEmail(recipients, replySubject, fullReplyBody);
+    }
+
+    /**
+     * Get email statistics
+     */
+    async getEmailStatistics(): Promise<{
+        total: number;
+        unread: number;
+        flagged: number;
+        recent: number;
+    }> {
+        const connection = await this.initializeIMAP();
+        
+        await connection.openBox('INBOX');
+
+        const [total, unread, flagged, recent] = await Promise.all([
+            connection.search(['ALL'], { bodies: '' }),
+            connection.search(['UNSEEN'], { bodies: '' }),
+            connection.search(['FLAGGED'], { bodies: '' }),
+            connection.search(['RECENT'], { bodies: '' })
+        ]);
+
+        return {
+            total: total.length,
+            unread: unread.length,
+            flagged: flagged.length,
+            recent: recent.length
+        };
+    }
+
+    /**
+     * Create email draft
+     */
+    async createDraft(to: string | string[], subject: string, body: string, attachments?: Attachment[]): Promise<{ draftId: string }> {
+        // This would typically save to a drafts folder in IMAP
+        // For now, we'll return a mock draft ID
+        const draftId = `draft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        // In a real implementation, you would save this to the IMAP DRAFTS folder
+        console.log('Draft created:', { draftId, to, subject, body, attachments });
+        
+        return { draftId };
+    }
+
+    /**
+     * Schedule email for later sending
+     */
+    async scheduleEmail(
+        to: string | string[], 
+        subject: string, 
+        body: string, 
+        scheduleDate: Date,
+        attachments?: Attachment[]
+    ): Promise<{ scheduledId: string }> {
+        // This would typically integrate with a job scheduler
+        const scheduledId = `scheduled_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        // In a real implementation, you would use a job scheduler like node-cron or bull queue
+        console.log('Email scheduled:', { scheduledId, to, subject, scheduleDate });
+        
+        return { scheduledId };
+    }
+
+    /**
+     * Bulk send emails
+     */
+    async bulkSendEmails(emails: Array<{
+        to: string | string[];
+        subject: string;
+        body: string;
+        html?: string;
+        attachments?: Attachment[];
+    }>): Promise<Array<{ success: boolean; messageId?: string; error?: string }>> {
+        const results = [];
+        
+        for (const email of emails) {
+            try {
+                const result = email.attachments && email.attachments.length > 0
+                    ? await this.sendEmailWithAttachments(email.to, email.subject, email.body, email.attachments, email.html)
+                    : await this.sendEmail(email.to, email.subject, email.body, email.html);
+                
+                results.push({ success: true, messageId: result.messageId });
+            } catch (error) {
+                results.push({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+            }
+        }
+        
+        return results;
+    }
+
+    // === UTILITY FUNCTIONS ===
+
+    /**
+     * Parse IMAP message to EmailMessage interface
+     */
+    private parseEmailMessage(message: any): EmailMessage {
+        const header = message.parts[0]?.body || {};
+        
+        return {
+            id: message.attributes.uid.toString(),
+            from: this.parseAddressHeader(header.from?.[0] || ''),
+            to: this.parseAddressHeaders(header.to || []),
+            cc: this.parseAddressHeaders(header.cc || []),
+            bcc: this.parseAddressHeaders(header.bcc || []),
+            subject: header.subject?.[0] || '',
+            body: message.parts[1]?.body || '',
+            date: new Date(header.date?.[0] || Date.now()),
+            flags: message.attributes.flags || []
+        };
+    }
+
+    private parseAddressHeader(address: string): string {
+        return address.replace(/[<>]/g, '');
+    }
+
+    private parseAddressHeaders(addresses: string[]): string[] {
+        return addresses.map(addr => this.parseAddressHeader(addr));
+    }
+
+    /**
+     * Close connections
+     */
+    async close(): Promise<void> {
+        if (this.imapConnection) {
+            await this.imapConnection.end();
+        }
+    }
+}
+
+// === CONTACT MANAGEMENT ===
+
+export class ContactService {
+    private contacts: Contact[] = [];
+
+    /**
+     * Add a new contact
+     */
+    addContact(name: string, email: string, group?: string): Contact {
+        const contact: Contact = {
+            id: `contact_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name,
+            email,
+            group
+        };
+        
+        this.contacts.push(contact);
+        return contact;
+    }
+
+    /**
+     * Get all contacts
+     */
+    getAllContacts(): Contact[] {
+        return [...this.contacts];
+    }
+
+    /**
+     * Get contacts by group
+     */
+    getContactsByGroup(group: string): Contact[] {
+        return this.contacts.filter(contact => contact.group === group);
+    }
+
+    /**
+     * Search contacts by name or email
+     */
+    searchContacts(query: string): Contact[] {
+        const lowercaseQuery = query.toLowerCase();
+        return this.contacts.filter(contact => 
+            contact.name.toLowerCase().includes(lowercaseQuery) ||
+            contact.email.toLowerCase().includes(lowercaseQuery)
+        );
+    }
+
+    /**
+     * Update contact
+     */
+    updateContact(id: string, updates: Partial<Omit<Contact, 'id'>>): Contact | null {
+        const contactIndex = this.contacts.findIndex(contact => contact.id === id);
+        if (contactIndex === -1) return null;
+
+        this.contacts[contactIndex] = { ...this.contacts[contactIndex], ...updates };
+        return this.contacts[contactIndex];
+    }
+
+    /**
+     * Delete contact
+     */
+    deleteContact(id: string): boolean {
+        const contactIndex = this.contacts.findIndex(contact => contact.id === id);
+        if (contactIndex === -1) return false;
+
+        this.contacts.splice(contactIndex, 1);
+        return true;
+    }
+}
+
+// Factory function to create email service with default config
+export function createEmailService(config: Partial<EmailConfig>): EmailService {
+    const defaultConfig: EmailConfig = {
+        smtp: {
+            host: process.env.SMTP_HOST || 'smtp.gmail.com',
+            port: parseInt(process.env.SMTP_PORT || '587'),
+            secure: process.env.SMTP_SECURE === 'true',
+            auth: {
+                user: process.env.EMAIL_USER || '',
+                pass: process.env.EMAIL_PASS || ''
+            }
+        },
+        imap: {
+            host: process.env.IMAP_HOST || 'imap.gmail.com',
+            port: parseInt(process.env.IMAP_PORT || '993'),
+            tls: process.env.IMAP_TLS !== 'false',
+            auth: {
+                user: process.env.EMAIL_USER || '',
+                pass: process.env.EMAIL_PASS || ''
+            },
+            markSeen: process.env.IMAP_MARK_SEEN === 'true'
+        }
+    };
+
+    return new EmailService({ ...defaultConfig, ...config });
+}
