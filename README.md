@@ -1,6 +1,11 @@
 # Email MCP Server
 
-A comprehensive Model Context Protocol (MCP) server for advanced email operations. This server provides both basic and advanced email functionalities including sending, receiving, searching, and managing emails, as well as contact management.
+A comprehensive **Model Context Protocol (MCP) Server** with **standalone CLI tools** for advanced email operations. This dual-purpose tool functions as both:
+
+- **🔌 MCP Server**: Integrates with Claude Desktop and other MCP-compatible applications to provide email capabilities through structured tool calls
+- **⚡ CLI Tool Suite**: Standalone command-line interface with 19+ commands for direct email management from terminal
+
+Supports Gmail, Outlook, Yahoo, and any IMAP/SMTP email providers with advanced email operations, contact management, and bulk operations.
 
 ## Features
 

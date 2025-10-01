@@ -61,35 +61,53 @@ export function validateEnv() {
 
 // Initialize email service with environment config
 export async function initializeEmailService() {
-    loadEnv();
-    validateEnv();
-    
-    // Import email service (must be after env loading)
-    const { createEmailService } = await import('../dist/email.js');
-    
-    const config = {
-        smtp: {
-            host: process.env.SMTP_HOST,
-            port: parseInt(process.env.SMTP_PORT),
-            secure: process.env.SMTP_SECURE === 'true',
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            }
-        },
-        imap: {
-            host: process.env.IMAP_HOST,
-            port: parseInt(process.env.IMAP_PORT),
-            tls: process.env.IMAP_TLS !== 'false',
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
+    try {
+        loadEnv();
+        validateEnv();
+        
+        // Import email service (must be after env loading)
+        const { createEmailService } = await import('../dist/email.js');
+        
+        const config = {
+            smtp: {
+                host: process.env.SMTP_HOST,
+                port: parseInt(process.env.SMTP_PORT),
+                secure: process.env.SMTP_SECURE === 'true',
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS
+                },
+                tls: {
+                    rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== 'false'
+                }
             },
-            markSeen: process.env.IMAP_MARK_SEEN === 'true'
+            imap: {
+                host: process.env.IMAP_HOST,
+                port: parseInt(process.env.IMAP_PORT),
+                tls: process.env.IMAP_TLS !== 'false',
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS
+                },
+                markSeen: process.env.IMAP_MARK_SEEN === 'true',
+                connTimeout: parseInt(process.env.IMAP_CONN_TIMEOUT || '60000'),
+                authTimeout: parseInt(process.env.IMAP_AUTH_TIMEOUT || '30000'),
+                tlsOptions: {
+                    rejectUnauthorized: process.env.IMAP_REJECT_UNAUTHORIZED !== 'false'
+                }
+            }
+        };
+        
+        return createEmailService(config);
+    } catch (error) {
+        if (error.code === 'MODULE_NOT_FOUND') {
+            console.error(chalk.red('❌ Email service not built.'));
+            console.error(chalk.yellow('💡 Please build the project first:'));
+            console.error(chalk.cyan('   npm run build'));
+            process.exit(1);
         }
-    };
-    
-    return createEmailService(config);
+        throw error;
+    }
 }
 
 // Initialize contact service
@@ -116,6 +134,15 @@ export function handleError(error, operation = 'operation') {
         console.error(chalk.yellow('   - Internet connection'));
         console.error(chalk.yellow('   - SMTP/IMAP server settings in .env file'));
         console.error(chalk.yellow('   - Firewall settings'));
+    } else if (error.message.includes('self signed certificate') || error.code === 'CERT_HAS_EXPIRED') {
+        console.error(chalk.yellow('\n💡 SSL Certificate issue detected. Try:'));
+        console.error(chalk.yellow('   - Add to .env file: SMTP_REJECT_UNAUTHORIZED=false'));
+        console.error(chalk.yellow('   - Add to .env file: IMAP_REJECT_UNAUTHORIZED=false'));
+        console.error(chalk.yellow('   - Or try running Node.js with --use-system-ca flag'));
+    } else if (error.code === 'MODULE_NOT_FOUND') {
+        console.error(chalk.yellow('\n💡 Module not found. Please:'));
+        console.error(chalk.yellow('   - Run: npm run build'));
+        console.error(chalk.yellow('   - Make sure all dependencies are installed: npm install'));
     }
     
     process.exit(1);

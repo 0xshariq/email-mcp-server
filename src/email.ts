@@ -85,7 +85,14 @@ export class EmailService {
     // Initialize SMTP transporter
     private async initializeTransporter(): Promise<nodemailer.Transporter> {
         if (!this.transporter) {
-            this.transporter = nodemailer.createTransport(this.config.smtp);
+            // Add TLS options to handle self-signed certificates
+            const smtpConfig = {
+                ...this.config.smtp,
+                tls: {
+                    rejectUnauthorized: false // Allow self-signed certificates
+                }
+            };
+            this.transporter = nodemailer.createTransport(smtpConfig);
         }
         return this.transporter;
     }
@@ -97,7 +104,12 @@ export class EmailService {
                 imap: {
                     ...this.config.imap,
                     user: this.config.imap.auth.user,
-                    password: this.config.imap.auth.pass
+                    password: this.config.imap.auth.pass,
+                    connTimeout: 60000, // 60 second connection timeout
+                    authTimeout: 30000, // 30 second auth timeout
+                    tlsOptions: {
+                        rejectUnauthorized: false // Allow self-signed certificates
+                    }
                 }
             });
         }
@@ -207,8 +219,22 @@ export class EmailService {
             const connection = await this.initializeIMAP();
             
             await connection.openBox('INBOX');
-            await connection.addFlags(emailId, '\\Deleted');
-            await connection.expunge();
+            
+            // Add the deleted flag to the email
+            await new Promise((resolve, reject) => {
+                connection.imap.addFlags(emailId, '\\Deleted', (err: any) => {
+                    if (err) reject(err);
+                    else resolve(null);
+                });
+            });
+            
+            // Expunge to permanently delete
+            await new Promise((resolve, reject) => {
+                connection.imap.expunge((err: any) => {
+                    if (err) reject(err);
+                    else resolve(null);
+                });
+            });
             
             return true;
         } catch (error) {
@@ -225,10 +251,23 @@ export class EmailService {
             const connection = await this.initializeIMAP();
             
             await connection.openBox('INBOX');
+            
             if (read) {
-                await connection.addFlags(emailId, '\\Seen');
+                // Add the seen flag
+                await new Promise((resolve, reject) => {
+                    connection.imap.addFlags(emailId, '\\Seen', (err: any) => {
+                        if (err) reject(err);
+                        else resolve(null);
+                    });
+                });
             } else {
-                await connection.delFlags(emailId, '\\Seen');
+                // Remove the seen flag
+                await new Promise((resolve, reject) => {
+                    connection.imap.delFlags(emailId, '\\Seen', (err: any) => {
+                        if (err) reject(err);
+                        else resolve(null);
+                    });
+                });
             }
             
             return true;
@@ -484,6 +523,14 @@ export class ContactService {
     }
 
     /**
+     * List contacts with limit (alias for getAllContacts)
+     */
+    listContacts(limit?: number): Contact[] {
+        const contacts = this.getAllContacts();
+        return limit ? contacts.slice(0, limit) : contacts;
+    }
+
+    /**
      * Get contacts by group
      */
     getContactsByGroup(group: string): Contact[] {
@@ -504,12 +551,29 @@ export class ContactService {
     /**
      * Update contact
      */
-    updateContact(id: string, updates: Partial<Omit<Contact, 'id'>>): Contact | null {
+    updateContact(id: string, field: string, value: string): Contact | null;
+    updateContact(id: string, updates: Partial<Omit<Contact, 'id'>>): Contact | null;
+    updateContact(id: string, fieldOrUpdates: string | Partial<Omit<Contact, 'id'>>, value?: string): Contact | null {
         const contactIndex = this.contacts.findIndex(contact => contact.id === id);
         if (contactIndex === -1) return null;
 
-        this.contacts[contactIndex] = { ...this.contacts[contactIndex], ...updates };
+        if (typeof fieldOrUpdates === 'string' && value !== undefined) {
+            // Single field update
+            const updates = { [fieldOrUpdates]: value } as Partial<Contact>;
+            this.contacts[contactIndex] = { ...this.contacts[contactIndex], ...updates };
+        } else if (typeof fieldOrUpdates === 'object') {
+            // Bulk update
+            this.contacts[contactIndex] = { ...this.contacts[contactIndex], ...fieldOrUpdates };
+        }
+
         return this.contacts[contactIndex];
+    }
+
+    /**
+     * Get contact by ID
+     */
+    getContact(id: string): Contact | null {
+        return this.contacts.find(contact => contact.id === id) || null;
     }
 
     /**
@@ -549,4 +613,9 @@ export function createEmailService(config: Partial<EmailConfig>): EmailService {
     };
 
     return new EmailService({ ...defaultConfig, ...config });
+}
+
+// Factory function to create contact service
+export function createContactService(): ContactService {
+    return new ContactService();
 }
