@@ -6,14 +6,166 @@ For additional troubleshooting resources, see: [GitHub MCP Server Troubleshootin
 
 ## Table of Contents
 
-1. [Environment Setup Issues](#environment-setup-issues)
-2. [Authentication Problems](#authentication-problems)
-3. [Connection Issues](#connection-issues)
-4. [CLI Command Issues](#cli-command-issues)
-5. [Email Operation Errors](#email-operation-errors)
-6. [Contact Management Issues](#contact-management-issues)
-7. [File and Permission Issues](#file-and-permission-issues)
-8. [Performance Issues](#performance-issues)
+1. [CLI Installation Issues](#cli-installation-issues)
+2. [Environment Setup Issues](#environment-setup-issues)
+3. [Authentication Problems](#authentication-problems)
+4. [Connection Issues](#connection-issues)
+5. [CLI Command Issues](#cli-command-issues)
+6. [Email Operation Errors](#email-operation-errors)
+7. [Contact Management Issues](#contact-management-issues)
+8. [File and Permission Issues](#file-and-permission-issues)
+9. [Performance Issues](#performance-issues)
+
+## CLI Installation Issues
+
+### ❌ CLI Commands Not Found (e.g., `email-send: command not found`)
+
+**Problem:** After installation, CLI commands like `email-send`, `cadd`, etc. are not recognized.
+
+**Solutions:**
+
+**Option 1: NPM Global Installation (Recommended)**
+```bash
+# Install globally via npm
+npm install -g @0xshariq/email-mcp-server
+
+# Verify installation
+npm list -g @0xshariq/email-mcp-server
+
+# Test commands
+email-send --help
+cadd --help
+```
+
+**Option 2: Manual Symlink Creation**
+```bash
+# Navigate to project directory
+cd /path/to/email-mcp-server
+
+# Make CLI executable
+chmod +x email-cli.js
+
+# Create symlinks for all commands
+sudo ln -sf $(pwd)/email-cli.js /usr/local/bin/email-send
+sudo ln -sf $(pwd)/email-cli.js /usr/local/bin/esend
+sudo ln -sf $(pwd)/email-cli.js /usr/local/bin/email-read
+sudo ln -sf $(pwd)/email-cli.js /usr/local/bin/eread
+sudo ln -sf $(pwd)/email-cli.js /usr/local/bin/email-delete
+sudo ln -sf $(pwd)/email-cli.js /usr/local/bin/edelete
+sudo ln -sf $(pwd)/email-cli.js /usr/local/bin/contact-add
+sudo ln -sf $(pwd)/email-cli.js /usr/local/bin/cadd
+# ... (repeat for other commands)
+```
+
+**Option 3: Use Installation Script**
+```bash
+# Run the provided installation script
+./install-cli.sh
+
+# Or manually install with npm link
+npm link
+```
+
+### ❌ CLI Commands Run But Show No Output
+
+**Problem:** Commands execute but display no output or help text.
+
+**Root Cause:** The symlinks point to `email-cli.js` but the working directory or import paths are incorrect.
+
+**Solutions:**
+
+**1. Verify Symlink Targets:**
+```bash
+# Check where symlinks point
+ls -la /usr/local/bin/email-send
+ls -la /usr/local/bin/contact-add
+
+# Should point to your email-cli.js file
+```
+
+**2. Test Direct Execution:**
+```bash
+# Test the CLI directly
+cd /path/to/email-mcp-server
+./email-cli.js email-send --help
+node email-cli.js email-send --help
+```
+
+**3. Check File Permissions:**
+```bash
+# Make sure email-cli.js is executable
+chmod +x email-cli.js
+
+# Verify permissions
+ls -la email-cli.js
+```
+
+**4. Rebuild and Test:**
+```bash
+# Rebuild the project
+npm run build
+
+# Test individual CLI files
+./bin/basic/email-send.js --help
+./bin/contacts/contact-add.js --help
+```
+
+### ❌ `Cannot find module` Errors
+
+**Problem:** CLI commands fail with module import errors.
+
+**Solutions:**
+
+**1. Install Dependencies:**
+```bash
+npm install
+# or
+pnpm install
+```
+
+**2. Build TypeScript:**
+```bash
+npm run build
+```
+
+**3. Check Node.js Version:**
+```bash
+# Ensure Node.js version 18+ for ES modules
+node --version
+```
+
+### ❌ Permission Denied Errors
+
+**Problem:** Cannot create symlinks or execute CLI commands.
+
+**Solutions:**
+
+**1. Use Sudo for System Installation:**
+```bash
+sudo ln -sf /path/to/email-cli.js /usr/local/bin/email-send
+```
+
+**2. Alternative: User-Local Installation:**
+```bash
+# Create local bin directory
+mkdir -p ~/.local/bin
+
+# Add to PATH (in ~/.bashrc or ~/.zshrc)
+export PATH="$HOME/.local/bin:$PATH"
+
+# Create symlinks in user space
+ln -sf /path/to/email-cli.js ~/.local/bin/email-send
+ln -sf /path/to/email-cli.js ~/.local/bin/cadd
+```
+
+**3. NPM Global Installation (No sudo needed with proper npm setup):**
+```bash
+# Configure npm to use user directory
+npm config set prefix ~/.local
+
+# Then install globally
+npm install -g @0xshariq/email-mcp-server
+```
 
 ## Environment Setup Issues
 
