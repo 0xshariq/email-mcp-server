@@ -2,11 +2,18 @@
 
 /**
  * Send Email CLI - Basic Operation
- * Usage: ./bin/basic/email-send.js <to> <subject> <body> [html]
+ * Usage: email-send <to> <subject> <body> [html]
  */
 
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import { loadEnv, validateEnv, initializeEmailService, Spinner } from '../utils.js';
 import chalk from 'chalk';
+
+// Get the directory of this script
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const projectRoot = join(__dirname, '../..');
 
 function showHelp() {
   console.log(chalk.bold.cyan('\n📧 Email Send - Send an email to recipients\n'));
@@ -31,6 +38,9 @@ function showHelp() {
 }
 
 async function main() {
+    // Change to project root directory to ensure relative paths work
+    process.chdir(projectRoot);
+    
     const args = process.argv.slice(2);
 
     if (args.includes('--help') || args.includes('-h')) {
