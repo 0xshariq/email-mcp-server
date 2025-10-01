@@ -93,12 +93,55 @@ IMAP_HOST=imap.mail.yahoo.com
 
 ## Usage
 
-### Running the Server
+### Running as MCP Server
 ```bash
 pnpm start
 ```
 
-### Available Tools
+### CLI Tools Usage
+
+The email server also provides a comprehensive CLI interface for direct command-line usage. All operations can be performed using both long and short command aliases.
+
+#### Command Structure
+```bash
+# Using full command names
+email-send "user@example.com" "Subject" "Message body"
+email-read 10
+contact-add "John Doe" "john@example.com" "work"
+
+# Using short aliases
+esend "user@example.com" "Subject" "Message body"
+eread 10
+cadd "John Doe" "john@example.com" "work"
+```
+
+#### CLI Documentation
+
+Detailed documentation for each command category is available in the `bin/` folder:
+
+- **📁 [bin/basic/README.md](bin/basic/README.md)** - Basic email operations (send, read, get, delete, mark-read)
+- **📁 [bin/advanced/README.md](bin/advanced/README.md)** - Advanced operations (search, forward, reply, stats, drafts, scheduling, bulk, attachments)  
+- **📁 [bin/contacts/README.md](bin/contacts/README.md)** - Contact management (add, list, search, group, update, delete)
+
+#### Quick CLI Reference
+
+| Category | Commands | Short Aliases |
+|----------|----------|---------------|
+| **Basic Email** | `email-send`, `email-read`, `email-get`, `email-delete`, `email-mark-read` | `esend`, `eread`, `eget`, `edelete`, `emarkread` |
+| **Advanced Email** | `email-search`, `email-attach`, `email-forward`, `email-reply`, `email-stats`, `email-draft`, `email-schedule`, `email-bulk` | `esearch`, `eattach`, `eforward`, `ereply`, `estats`, `edraft`, `eschedule`, `ebulk` |
+| **Contact Management** | `contact-add`, `contact-list`, `contact-search`, `contact-group`, `contact-update`, `contact-delete` | `cadd`, `clist`, `csearch`, `cgroup`, `cupdate`, `cdelete` |
+
+#### Getting CLI Help
+```bash
+# General help
+email-cli --help
+
+# Command-specific help
+email-send --help
+esend --help
+```
+
+### MCP Server Tools
 
 #### Basic Email Tools
 
@@ -336,12 +379,37 @@ pnpm run clean
 ### File Structure
 ```
 src/
-├── index.ts          # Main MCP server implementation
-├── email.ts          # Email service classes and functions
+├── index.ts              # Main MCP server implementation
+├── email.ts              # Email service classes and functions
 bin/
-├── basic/            # Basic email operation examples
-├── advanced/         # Advanced email operation examples
-docs/                 # Documentation
+├── basic/                # Basic email operations CLI
+│   ├── README.md         # Basic operations documentation
+│   ├── email-send.js     # Send email (esend)
+│   ├── email-read.js     # Read emails (eread)
+│   ├── email-get.js      # Get email by ID (eget)
+│   ├── email-delete.js   # Delete email (edelete)
+│   └── email-mark-read.js # Mark read/unread (emarkread)
+├── advanced/             # Advanced email operations CLI
+│   ├── README.md         # Advanced operations documentation
+│   ├── email-search.js   # Search emails (esearch)
+│   ├── email-attach.js   # Send with attachment (eattach)
+│   ├── email-forward.js  # Forward email (eforward)
+│   ├── email-reply.js    # Reply to email (ereply)
+│   ├── email-stats.js    # Email statistics (estats)
+│   ├── email-draft.js    # Create draft (edraft)
+│   ├── email-schedule.js # Schedule email (eschedule)
+│   └── email-bulk.js     # Bulk send (ebulk)
+├── contacts/             # Contact management CLI
+│   ├── README.md         # Contact management documentation
+│   ├── contact-add.js    # Add contact (cadd)
+│   ├── contact-list.js   # List contacts (clist)
+│   ├── contact-search.js # Search contacts (csearch)
+│   ├── contact-group.js  # Contacts by group (cgroup)
+│   ├── contact-update.js # Update contact (cupdate)
+│   └── contact-delete.js # Delete contact (cdelete)
+└── utils.js              # Shared CLI utilities
+email-cli.js              # Main CLI entry point
+docs/                     # Documentation
 ```
 
 ## Dependencies
@@ -366,9 +434,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Support
 
 For issues and questions:
+- **📁 [Troubleshooting Guide](docs/troubleshooting.md)** - Common issues and solutions
 - Create an issue on GitHub
 - Check the documentation in the `docs/` folder
-- Review the example configurations in `bin/` folder
+- Review the CLI documentation in `bin/` folders
 
 ## Changelog
 

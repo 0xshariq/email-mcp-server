@@ -1,5 +1,5 @@
 {
-  "name": "email-mcp-server",
+  "name": "@0xshariq/email-mcp-server",
   "version": "1.0.0",
   "description": "A MCP Server that perform email operations",
   "keywords": [
