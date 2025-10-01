@@ -97,7 +97,7 @@ async function main() {
   let commandArgs = args;
   
   // If called as email-cli.js, get command from arguments
-  if (commandName === 'email-cli.js') {
+  if (commandName === 'email-cli.js' || commandName === 'email-cli') {
     if (args.length === 0 || (args.includes('--help') || args.includes('-h')) && args.length === 1) {
       showUsage();
       return;
@@ -106,6 +106,7 @@ async function main() {
     commandArgs = args.slice(1);
   }
 
+  // Handle direct command execution (when called as the command itself)
   if (commands[command]) {
     const scriptPath = path.join(__dirname, 'bin', commands[command]);
     
@@ -119,14 +120,21 @@ async function main() {
       process.exit(1);
     }
     
-    // Execute the script
+    // Change to the project directory to ensure relative imports work
+    process.chdir(__dirname);
+    
+    // Execute the script with proper environment
     const childProcess = spawn('node', [scriptPath, ...commandArgs], {
       stdio: 'inherit',
-      cwd: process.cwd()
+      cwd: __dirname,
+      env: { 
+        ...process.env,
+        NODE_PATH: __dirname
+      }
     });
 
     childProcess.on('close', (code) => {
-      process.exit(code);
+      process.exit(code || 0);
     });
 
     childProcess.on('error', (err) => {
@@ -135,6 +143,7 @@ async function main() {
     });
   } else {
     console.error(chalk.red.bold(`❌ Unknown command: ${command}`));
+    console.log(chalk.yellow('\n💡 Run with --help to see available commands'));
     showUsage();
     process.exit(1);
   }
