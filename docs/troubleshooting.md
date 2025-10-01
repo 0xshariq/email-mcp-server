@@ -2,6 +2,8 @@
 
 This document provides solutions to common issues you might encounter while using the Email MCP Server and CLI tools.
 
+For additional troubleshooting resources, see: [GitHub MCP Server Troubleshooting Guide](https://github.com/0xshariq/github-mcp-server/blob/main/markdown/TROUBLESHOOTING.md)
+
 ## Table of Contents
 
 1. [Environment Setup Issues](#environment-setup-issues)

@@ -1,270 +1,585 @@
 # Email MCP Server CLI Commands
 
-This document lists all available CLI commands for the Email MCP Server. Each command has both a short alias and a long descriptive name.
+Complete guide for using the Email MCP Server CLI tools. The CLI provides comprehensive email management capabilities through both short and long command aliases.
+
+## 📦 Installation
+
+### Global Installation (Recommended)
+```bash
+npm install -g @0xshariq/email-mcp-server
+```
+
+After global installation, all commands are available system-wide:
+```bash
+# All these work directly:
+email-send "user@example.com" "Subject" "Body"
+esend "user@example.com" "Subject" "Body"  
+eread 10
+cadd "John Doe" "john@example.com"
+```
+
+### Local Development
+```bash
+# Clone and build
+git clone https://github.com/0xshariq/email-mcp-server.git
+cd email-mcp-server
+npm install
+npm run build
+
+# Use with node
+node email-cli.js email-send "user@example.com" "Subject" "Body"
+```
 
 ## 🔧 Environment Setup
 
-### 1. Create .env file from template:
+### 1. Create .env file:
 ```bash
 cp .env.example .env
 ```
 
-### 2. Configure your email settings in `.env`:
+### 2. Configure email settings:
 ```env
-# Gmail SMTP Configuration
+# Gmail Configuration (most common)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_SECURE=false
 EMAIL_USER=your-email@gmail.com
-EMAIL_PASS=your-app-password
+EMAIL_PASS=your-app-password  # Use App Password for Gmail!
 
-# Gmail IMAP Configuration  
 IMAP_HOST=imap.gmail.com
 IMAP_PORT=993
 IMAP_TLS=true
 IMAP_MARK_SEEN=false
+
+# Other providers supported (Outlook, Yahoo, custom SMTP/IMAP)
 ```
 
-### 3. Build the project:
-```bash
-pnpm run build
-```
+### 3. Gmail App Password Setup:
+1. Enable 2-Factor Authentication
+2. Go to Google Account → Security → App Passwords
+3. Generate password for "Mail"
+4. Use this 16-character password in `EMAIL_PASS`
 
 ## 📧 Basic Email Operations
 
-### Send Email
-```bash
-# Short alias
-./bin/basic/esend.js "user@example.com" "Subject" "Email body"
-./bin/basic/esend.js "user@example.com" "HTML Email" "Plain text" "<h1>HTML</h1>"
+### 📤 Send Email (`email-send` / `esend`)
+Send emails to one or more recipients with optional HTML content.
 
-# Long alias
-./bin/basic/email-send.js "user@example.com" "Subject" "Email body"
+```bash
+# Basic usage
+email-send "user@example.com" "Subject" "Email body"
+esend "user@example.com" "Meeting Reminder" "Team meeting at 3 PM today"
+
+# Multiple recipients
+email-send "user1@example.com,user2@example.com" "Update" "Important update for everyone"
+
+# With HTML content
+esend "client@example.com" "Newsletter" "Plain text version" "<h1>HTML Newsletter</h1><p>Rich content here</p>"
 ```
 
-### Send Email with Attachment
-```bash
-# Short alias
-./bin/basic/eattach.js "user@example.com" "Report" "Please find attached" "/path/to/file.pdf"
-./bin/basic/eattach.js "user@example.com" "Document" "See attachment" "/home/file.doc" "custom-name.doc"
+**Arguments:**
+- `to` - Recipient email(s), comma-separated
+- `subject` - Email subject line  
+- `body` - Plain text message body
+- `html` - Optional HTML content
 
-# Long alias
-./bin/basic/email-attach.js "user@example.com" "Report" "Please find attached" "/path/to/file.pdf"
+### 📬 Read Recent Emails (`email-read` / `eread`)
+Retrieve and display recent emails from your inbox.
+
+```bash
+# Read default (10) emails
+email-read
+eread
+
+# Read specific number
+eread 5              # Read 5 recent emails
+email-read 25        # Read 25 recent emails
 ```
 
-### Read Recent Emails
-```bash
-# Short alias
-./bin/basic/eread.js           # Read 10 recent emails
-./bin/basic/eread.js 5         # Read 5 recent emails
+**Arguments:**
+- `count` - Number of emails to retrieve (default: 10)
 
-# Long alias
-./bin/basic/email-read.js 20   # Read 20 recent emails
+### 📄 Get Specific Email (`email-get` / `eget`)
+Retrieve detailed information about a specific email by ID.
+
+```bash
+# Get email details
+email-get 12345
+eget 67890
+
+# Use with email IDs from email-read
+eread 5              # Shows email IDs
+eget <id-from-above>  # Get specific email
 ```
 
-### Get Specific Email
-```bash
-# Short alias
-./bin/basic/eget.js 12345      # Get email with ID 12345
+**Arguments:**
+- `email_id` - Unique email identifier from email-read
 
-# Long alias
-./bin/basic/email-get.js 12345
+### 🗑️ Delete Email (`email-delete` / `edelete`)
+Permanently delete emails from your inbox.
+
+```bash
+# Interactive delete (asks for confirmation)
+email-delete 12345
+edelete 67890
+
+# Force delete (no confirmation)
+edelete 12345 --force
+email-delete 67890 -f
 ```
 
-### Delete Email
-```bash
-# Short alias
-./bin/basic/edelete.js 12345           # Interactive delete
-./bin/basic/edelete.js 12345 --force   # Force delete without confirmation
+**Arguments:**
+- `email_id` - Email ID to delete
+- `--force` / `-f` - Skip confirmation prompt
 
-# Long alias
-./bin/basic/email-delete.js 12345
-./bin/basic/email-delete.js 12345 -f   # Force delete
+### ✅ Mark Email Read/Unread (`email-mark-read` / `emarkread`)
+Change the read status of emails.
+
+```bash
+# Mark as read
+email-mark-read 12345 true
+emarkread 67890
+
+# Mark as unread  
+emarkread 12345 false
+email-mark-read 67890 unread
 ```
 
-### Mark Email as Read/Unread
-```bash
-# Short alias
-./bin/basic/emarkread.js 12345        # Mark as read
-./bin/basic/emarkread.js 12345 false  # Mark as unread
-
-# Long alias
-./bin/basic/email-mark-read.js 12345 true
-```
+**Arguments:**
+- `email_id` - Email ID to update
+- `status` - `true`/`read` or `false`/`unread`
 
 ## 🚀 Advanced Email Operations
 
-### Search Emails
-```bash
-# Short alias
-./bin/advanced/esearch.js --from "boss@company.com" --seen false
-./bin/advanced/esearch.js --subject "meeting" --since "2024-01-01"
-./bin/advanced/esearch.js --to "me@company.com" --limit 5
+### 🔍 Search Emails (`email-search` / `esearch`)
+Search emails with advanced filters and criteria.
 
-# Long alias
-./bin/advanced/email-search.js --from "important@company.com" --flagged true
+```bash
+# Search by sender
+email-search --from "boss@company.com"
+esearch --from "important@client.com" --limit 5
+
+# Search by subject and date
+esearch --subject "meeting" --since "2024-01-01"
+email-search --subject "invoice" --before "2024-12-31"
+
+# Search unread emails
+esearch --seen false --limit 10
+email-search --from "@company.com" --seen false
+
+# Complex searches
+esearch --to "me@company.com" --flagged true --since "2024-10-01"
 ```
 
-### Forward Email
-```bash
-# Short alias
-./bin/advanced/eforward.js 12345 "colleague@company.com" "Please review"
+**Filter Options:**
+- `--from <email>` - Filter by sender
+- `--to <email>` - Filter by recipient  
+- `--subject <text>` - Filter by subject keywords
+- `--since <date>` - Emails after date (ISO format)
+- `--before <date>` - Emails before date
+- `--seen <true|false>` - Read/unread status
+- `--flagged <true|false>` - Flagged status
+- `--limit <number>` - Max results (default: 10)
 
-# Long alias
-./bin/advanced/email-forward.js 12345 "team@company.com"
+### 📎 Send with Attachment (`email-attach` / `eattach`)
+Send emails with file attachments up to 25MB.
+
+```bash
+# Basic attachment
+email-attach "user@example.com" "Report" "Please find attached report" "/path/to/report.pdf"
+eattach "client@example.com" "Invoice" "Monthly invoice attached" "./invoice-oct.pdf"
+
+# Multiple file types supported
+eattach "team@company.com" "Presentation" "Meeting slides" "/home/user/slides.pptx"
+email-attach "hr@company.com" "Documents" "Required forms" "/documents/forms.zip"
 ```
 
-### Reply to Email
-```bash
-# Short alias
-./bin/advanced/ereply.js 12345 "Thank you for the update"
-./bin/advanced/ereply.js 12345 "Thanks" --reply-all
+**Supported File Types:**
+- Documents: PDF, DOC, DOCX, TXT, RTF
+- Spreadsheets: XLS, XLSX, CSV
+- Images: JPG, PNG, GIF, BMP
+- Archives: ZIP, RAR, 7Z, TAR.GZ
+- Others: Most file types up to 25MB
 
-# Long alias
-./bin/advanced/email-reply.js 12345 "Thank you for the information"
+### ↪️ Forward Email (`email-forward` / `eforward`)
+Forward existing emails to new recipients with additional message.
+
+```bash
+# Basic forwarding
+email-forward 12345 "colleague@company.com" "Please review this email"
+eforward 67890 "team@company.com" "FYI - important update"
+
+# Forward without additional message
+eforward 12345 "manager@company.com"
 ```
 
-### Email Statistics
-```bash
-# Short alias
-./bin/advanced/estats.js
+**Arguments:**
+- `email_id` - ID of email to forward
+- `to_email` - Recipient email address
+- `message` - Additional forwarding message (optional)
 
-# Long alias
-./bin/advanced/email-stats.js
+### 💬 Reply to Email (`email-reply` / `ereply`)
+Reply to existing emails with automatic threading.
+
+```bash
+# Simple reply
+email-reply 12345 "Thank you for the information"
+ereply 67890 "I'll review this and get back to you"
+
+# Reply with confirmation
+ereply 12345 "Confirmed - I'll attend the meeting"
 ```
 
-### Create Draft
-```bash
-# Short alias
-./bin/advanced/edraft.js "client@example.com" "Proposal" "Draft content here"
+**Arguments:**
+- `email_id` - ID of email to reply to
+- `message` - Reply message content
 
-# Long alias
-./bin/advanced/email-draft.js "client@example.com" "Meeting Notes" "Draft content"
+### 📊 Email Statistics (`email-stats` / `estats`)
+Get comprehensive statistics about your email account.
+
+```bash
+# Get account statistics
+email-stats
+estats
 ```
 
-### Schedule Email
-```bash
-# Short alias  
-./bin/advanced/eschedule.js "team@company.com" "Reminder" "Meeting tomorrow" "2024-12-31T09:00:00Z"
+**Statistics Include:**
+- Total emails in account
+- Unread vs read counts
+- Recent activity summary  
+- Top senders analysis
+- Folder/label statistics
+- Storage usage information
 
-# Long alias
-./bin/advanced/email-schedule.js "all@company.com" "Newsletter" "Monthly update" "2024-12-31T08:00:00Z"
+### 📝 Create Email Draft (`email-draft` / `edraft`)
+Create email drafts for later editing and sending.
+
+```bash
+# Create basic draft
+email-draft "client@example.com" "Proposal Draft" "Initial proposal content..."
+edraft "team@company.com" "Meeting Notes" "Draft meeting notes from today"
+
+# Create detailed draft
+edraft "important@client.com" "Project Update" "Quarterly project status and next steps"
 ```
 
-### Bulk Send Emails
-```bash
-# Short alias
-./bin/advanced/ebulk.js subscribers.json
+**Arguments:**
+- `to` - Recipient email address
+- `subject` - Draft subject line
+- `body` - Draft message content
 
-# Long alias
-./bin/advanced/email-bulk.js newsletter-list.json
+### ⏰ Schedule Email (`email-schedule` / `eschedule`)
+Schedule emails for future delivery with flexible time formats.
+
+```bash
+# Schedule with ISO timestamp
+email-schedule "team@company.com" "Weekly Report" "Report content" "2024-12-31T09:00:00Z"
+
+# Schedule with relative time  
+eschedule "client@example.com" "Follow-up" "Following up on our meeting" "+2h"
+eschedule "all@company.com" "Newsletter" "Monthly newsletter" "+1d"
+
+# Schedule for specific date/time
+email-schedule "hr@company.com" "Reminder" "Deadline reminder" "2024-12-25T08:00:00Z"
 ```
+
+**Time Formats:**
+- ISO Format: `2024-12-31T09:00:00Z`
+- Relative: `+1h` (1 hour), `+30m` (30 min), `+1d` (1 day), `+1w` (1 week)
+
+### 📤 Bulk Send (`email-bulk` / `ebulk`)
+Send personalized emails to multiple recipients from a file.
+
+```bash
+# Send to recipients from file
+email-bulk recipients.txt "Newsletter" "Monthly company newsletter content"
+ebulk team-emails.txt "Meeting Reminder" "Team meeting tomorrow at 2 PM"
+
+# With custom recipient file
+ebulk ./contacts/vip-clients.txt "Important Update" "Exclusive client update"
+```
+
+**Recipients File Format:**
+```
+user1@example.com
+user2@company.com  
+client@important.com
+team@startup.com
+```
+
+**Features:**
+- Progress tracking for large lists
+- Error handling for invalid emails
+- Delivery confirmation reporting
+- Rate limiting to avoid spam filters
 
 ## 👥 Contact Management
 
-### Add Contact
-```bash
-# Short alias
-./bin/contacts/cadd.js "John Doe" "john@company.com" "Work"
+### 👤 Add Contact (`contact-add` / `cadd`)
+Add new contacts to your address book with groups and additional information.
 
-# Long alias
-./bin/contacts/contact-add.js "Jane Smith" "jane@company.com" "Clients"
+```bash
+# Basic contact
+contact-add "John Doe" "john@example.com"
+cadd "Jane Smith" "jane@company.com" "work"
+
+# With specific groups
+cadd "Important Client" "client@example.com" "vip"
+contact-add "Team Lead" "lead@company.com" "management"
+
+# Various groups
+cadd "Family Member" "family@personal.com" "family"
+cadd "Freelancer" "dev@freelance.com" "contractors"
 ```
 
-### List All Contacts
-```bash
-# Short alias
-./bin/contacts/clist.js
+**Arguments:**
+- `name` - Full contact name
+- `email` - Contact email address
+- `group` - Contact group (optional, default: "general")
 
-# Long alias
-./bin/contacts/contact-list.js
+**Common Groups:** work, clients, family, friends, vip, management, contractors, suppliers
+
+### 📋 List Contacts (`contact-list` / `clist`)
+Display all contacts with their information and groups.
+
+```bash
+# List all contacts (default: 20)
+contact-list
+clist
+
+# List specific number
+clist 50             # Show 50 contacts
+contact-list 10      # Show 10 contacts
+
+# List all contacts
+clist 999            # Show maximum contacts
 ```
 
-### Search Contacts
-```bash
-# Short alias
-./bin/contacts/csearch.js "john"
+**Arguments:**
+- `limit` - Maximum contacts to display (default: 20)
 
-# Long alias
-./bin/contacts/contact-search.js "company"
+### 🔍 Search Contacts (`contact-search` / `csearch`)
+Search contacts by name, email domain, or any text.
+
+```bash
+# Search by name
+contact-search "john"
+csearch "smith"
+
+# Search by email domain
+csearch "gmail.com"
+contact-search "@company.com"
+
+# Search by group
+csearch "work"
+contact-search "clients"
+
+# Partial searches
+csearch "dev"        # Finds "Developer", "dev@email.com", etc.
 ```
 
-### Get Contacts by Group
-```bash
-# Short alias
-./bin/contacts/cgroup.js "Work"
+**Arguments:**
+- `query` - Search term (searches name, email, and group fields)
 
-# Long alias
-./bin/contacts/contact-group.js "Clients"
+### 👥 Contacts by Group (`contact-group` / `cgroup`)
+Get all contacts belonging to a specific group.
+
+```bash
+# Get work contacts
+contact-group "work"
+cgroup "clients"
+
+# Get specific groups  
+cgroup "family"
+contact-group "vip"
+cgroup "management"
 ```
 
-### Update Contact
-```bash
-# Short alias
-./bin/contacts/cupdate.js contact_123 --name "John Smith Jr." --email "john.jr@company.com"
+**Arguments:**
+- `group_name` - Name of the contact group
 
-# Long alias
-./bin/contacts/contact-update.js contact_123 --name "Updated Name"
+### ✏️ Update Contact (`contact-update` / `cupdate`)
+Update existing contact information including name, email, phone, and group.
+
+```bash
+# Update name
+contact-update contact_123 name "John Smith Jr."
+cupdate contact_456 name "Jane Smith-Johnson"
+
+# Update email
+cupdate contact_123 email "newemail@example.com"
+contact-update contact_456 email "updated@company.com"
+
+# Update group
+cupdate contact_789 group "management"
+contact-update contact_101 group "vip"
+
+# Update phone number
+cupdate contact_123 phone "+1-555-0123"
 ```
 
-### Delete Contact
-```bash
-# Short alias
-./bin/contacts/cdelete.js contact_123
+**Arguments:**
+- `contact_id` - ID of contact to update (from contact-list)
+- `field` - Field to update: `name`, `email`, `phone`, `group`
+- `value` - New value for the field
 
-# Long alias
-./bin/contacts/contact-delete.js contact_123
+### 🗑️ Delete Contact (`contact-delete` / `cdelete`)
+Remove contacts from your address book with confirmation.
+
+```bash
+# Delete with confirmation prompt
+contact-delete contact_123
+cdelete contact_456
+
+# Force delete without confirmation
+cdelete contact_123 --force
+contact-delete contact_456 -f
 ```
 
-## 🆘 Help Commands
+**Arguments:**
+- `contact_id` - ID of contact to delete
+- `--force` / `-f` - Skip confirmation prompt
 
-Every command supports help flags:
+**Safety Features:**
+- Shows contact details before deletion
+- Requires confirmation unless `--force` used
+- Cannot be undone - use with caution
+
+## 🆘 Help System
+
+Every command has comprehensive help documentation:
+
 ```bash
-./bin/basic/esend.js --help
-./bin/basic/esend.js -h
-./bin/basic/esend.js help
+# General CLI help
+email-cli --help
+
+# Command-specific help
+email-send --help
+esend --help
+eread -h
+cadd --help
+
+# Help works with both aliases
+email-search --help
+esearch --help
+```
+
+**Help Information Includes:**
+- Command usage syntax
+- Argument descriptions  
+- Available options/flags
+- Practical examples
+- Related commands
+
+## 🎨 CLI Features
+
+### **Visual Features**
+- 🌈 **Colored Output** - Beautiful, readable terminal output
+- ⏳ **Progress Indicators** - Spinner animations for operations
+- 📊 **Structured Display** - Well-formatted email and contact lists
+- ✅ **Status Messages** - Clear success/error feedback
+
+### **User Experience**
+- 🔍 **Smart Error Messages** - Detailed errors with solutions
+- 🛡️ **Safety Confirmations** - Prompts for destructive operations  
+- ⚡ **Fast Performance** - Optimized for quick operations
+- 🔧 **Flexible Input** - Multiple argument formats supported
+
+### **Command Features**
+- 📝 **Dual Aliases** - Both short (`esend`) and long (`email-send`) versions
+- 🎯 **Context Aware** - Commands adapt based on available data
+- 🔄 **Batch Operations** - Bulk email sending and contact management
+- 📅 **Scheduling** - Future email delivery support
+
+## 🚀 Quick Start Examples
+
+### Daily Email Workflow
+```bash
+# Morning email check
+eread 10
+estats
+
+# Send project update
+esend "team@company.com" "Daily Standup" "Today's priorities and blockers"
+
+# Follow up on important emails
+esearch --from "boss@company.com" --seen false
+```
+
+### Contact Management Workflow
+```bash
+# Add new business contact
+cadd "Jane Smith" "jane@newclient.com" "clients"
+
+# Organize existing contacts
+clist                        # See all contacts
+cgroup "work"               # Check work contacts
+cupdate contact_123 group "vip"  # Promote important contact
+```
+
+### Advanced Email Operations
+```bash
+# Schedule weekly report
+eschedule "management@company.com" "Weekly Report" "Automated weekly summary" "+1w"
+
+# Send newsletter to subscribers
+ebulk newsletter-subscribers.txt "Monthly Update" "Our latest news and updates"
+
+# Search and organize emails
+esearch --subject "invoice" --since "2024-10-01"
+eforward 12345 "accounting@company.com" "Please process this invoice"
 ```
 
 ## ⚠️ Important Notes
 
-1. **Gmail Setup**: Use App Passwords, not your regular password
-2. **File Permissions**: All CLI files are executable (`chmod +x` applied)
-3. **Environment**: Make sure `.env` is configured before running any commands
-4. **Error Handling**: Commands provide detailed error messages and suggestions
-5. **Confirmation**: Destructive operations (like delete) ask for confirmation unless `--force` is used
+### **Security & Setup**
+1. **Gmail Users**: Must use App Passwords (not regular password)
+2. **Environment File**: Keep `.env` secure, never commit to version control
+3. **Network Security**: Use secure connections, verify SMTP/IMAP settings
+4. **Rate Limiting**: Respect email provider limits for bulk operations
 
-## 🎨 CLI Features
+### **Best Practices**
+1. **Test First**: Use small batches for bulk operations
+2. **Backup Contacts**: Export contact lists regularly
+3. **Monitor Quotas**: Check email provider limits and usage
+4. **Error Handling**: Read error messages for troubleshooting guidance
 
-- **Colored Output**: Uses chalk for beautiful terminal output
-- **Progress Indicators**: Spinner animations for long operations  
-- **Error Handling**: Comprehensive error messages with suggestions
-- **Help System**: Built-in help for every command
-- **Aliases**: Both short (e.g., `esend`) and long (e.g., `email-send`) versions
-- **Interactive Mode**: Confirmation prompts for destructive operations
-- **Flexible Arguments**: Support for optional parameters and flags
+### **File Management**
+1. **Attachments**: Use absolute paths, check file sizes (25MB limit)
+2. **Bulk Lists**: Use plain text files with one email per line
+3. **Permissions**: Ensure CLI has read access to attachment files
 
-## 📊 Example Workflow
+## 🔗 Additional Resources
 
-```bash
-# 1. Setup environment
-cp .env.example .env
-# Edit .env with your email settings
-pnpm run build
+- 📁 **[Basic Commands Documentation](../bin/basic/README.md)** - Detailed basic operations guide
+- 📁 **[Advanced Commands Documentation](../bin/advanced/README.md)** - Complex operations and features  
+- 📁 **[Contact Management Documentation](../bin/contacts/README.md)** - Complete contact system guide
+- 📁 **[Troubleshooting Guide](troubleshooting.md)** - Common issues and solutions
+- 📁 **[Architecture Documentation](architecture.md)** - Technical implementation details
 
-# 2. Send an email
-./bin/basic/esend.js "colleague@company.com" "Hello" "Test email from CLI"
+## 💡 Pro Tips
 
-# 3. Read recent emails
-./bin/basic/eread.js 5
+1. **Alias Setup**: Create shell aliases for frequently used commands
+   ```bash
+   alias morning-emails="eread 10 && estats"
+   alias check-important="esearch --from 'boss@company.com' --seen false"
+   ```
 
-# 4. Search for specific emails
-./bin/advanced/esearch.js --from "boss@company.com" --seen false
+2. **Batch Scripts**: Create scripts for routine tasks
+   ```bash
+   #!/bin/bash
+   # daily-email-routine.sh
+   eread 5
+   esearch --seen false --limit 3
+   estats
+   ```
 
-# 5. Add a contact
-./bin/contacts/cadd.js "Important Client" "client@company.com" "VIP"
+3. **Contact Organization**: Use consistent group naming
+   - `work-internal`, `work-external`, `clients-active`, `clients-potential`
 
-# 6. Get email statistics
-./bin/advanced/estats.js
-```
+4. **Email Templates**: Save common email content as files
+   ```bash
+   esend "client@example.com" "Weekly Check-in" "$(cat templates/weekly-checkin.txt)"
+   ```
 
-This CLI tool works completely independently from the MCP server and provides full email functionality through command-line interface.
+This CLI provides professional-grade email management capabilities suitable for individual users, small teams, and automated workflows.

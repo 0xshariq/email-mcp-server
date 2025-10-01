@@ -31,19 +31,15 @@ A comprehensive Model Context Protocol (MCP) server for advanced email operation
 
 ## Installation
 
-1. Clone the repository:
+```bash
+npm i -g @0xshariq/email-mcp-server
+```
+
+**Manual Installation:**
 ```bash
 git clone https://github.com/0xshariq/email-mcp-server.git
 cd email-mcp-server
-```
-
-2. Install dependencies:
-```bash
 pnpm install
-```
-
-3. Build the project:
-```bash
 pnpm run build
 ```
 
@@ -98,63 +94,82 @@ IMAP_HOST=imap.mail.yahoo.com
 pnpm start
 ```
 
-### CLI Tools Usage
+### CLI Tools
 
-The email server also provides a comprehensive CLI interface for direct command-line usage. All operations can be performed using both long and short command aliases.
+Comprehensive CLI interface with 19+ email management commands:
 
-#### Command Structure
 ```bash
-# Using full command names
-email-send "user@example.com" "Subject" "Message body"
-email-read 10
-contact-add "John Doe" "john@example.com" "work"
+# Basic operations  
+email-send "user@example.com" "Subject" "Message"
+eread 10                    # Read recent emails
+cadd "Name" "email@example.com" "work"  # Add contact
 
-# Using short aliases
-esend "user@example.com" "Subject" "Message body"
-eread 10
-cadd "John Doe" "john@example.com" "work"
+# Advanced operations
+esearch --from "boss@company.com" --unread  # Search emails
+eattach "user@example.com" "Report" "See attached" "/path/file.pdf" 
 ```
 
-#### CLI Documentation
+For complete CLI usage documentation, see **[CLI Usage Guide](docs/CLI_USAGE.md)**
+```
 
-Detailed documentation for each command category is available in the `bin/` folder:
+**� [Complete CLI Documentation →](docs/CLI_USAGE.md)**
 
-- **📁 [bin/basic/README.md](bin/basic/README.md)** - Basic email operations (send, read, get, delete, mark-read)
-- **📁 [bin/advanced/README.md](bin/advanced/README.md)** - Advanced operations (search, forward, reply, stats, drafts, scheduling, bulk, attachments)  
-- **📁 [bin/contacts/README.md](bin/contacts/README.md)** - Contact management (add, list, search, group, update, delete)
+**Documentation:**
+- **[CLI Usage Guide](docs/CLI_USAGE.md)** - Complete command reference with examples
+- **[Basic Operations](bin/basic/README.md)** - Send, read, delete emails  
+- **[Advanced Features](bin/advanced/README.md)** - Search, forward, schedule, bulk operations
+- **[Contact Management](bin/contacts/README.md)** - Manage your address book
 
-#### Quick CLI Reference
+#### Available Commands After Installation
 
-| Category | Commands | Short Aliases |
-|----------|----------|---------------|
-| **Basic Email** | `email-send`, `email-read`, `email-get`, `email-delete`, `email-mark-read` | `esend`, `eread`, `eget`, `edelete`, `emarkread` |
-| **Advanced Email** | `email-search`, `email-attach`, `email-forward`, `email-reply`, `email-stats`, `email-draft`, `email-schedule`, `email-bulk` | `esearch`, `eattach`, `eforward`, `ereply`, `estats`, `edraft`, `eschedule`, `ebulk` |
-| **Contact Management** | `contact-add`, `contact-list`, `contact-search`, `contact-group`, `contact-update`, `contact-delete` | `cadd`, `clist`, `csearch`, `cgroup`, `cupdate`, `cdelete` |
+Once installed globally, all these commands are available system-wide:
+
+```bash
+# Basic Email Operations
+email-send, esend              # Send an email
+email-read, eread              # Read recent emails  
+email-get, eget                # Get specific email by ID
+email-delete, edelete          # Delete an email
+email-mark-read, emarkread     # Mark email as read/unread
+
+# Advanced Email Operations  
+email-search, esearch          # Search emails with filters
+email-attach, eattach          # Send email with attachment
+email-forward, eforward        # Forward an email
+email-reply, ereply            # Reply to an email
+email-stats, estats            # Get email statistics
+email-draft, edraft            # Create email draft
+email-schedule, eschedule      # Schedule email for later
+email-bulk, ebulk              # Send bulk emails
+
+# Contact Management
+contact-add, cadd              # Add a new contact
+contact-list, clist            # List all contacts
+contact-search, csearch        # Search contacts
+contact-group, cgroup          # Get contacts by group  
+contact-update, cupdate        # Update contact info
+contact-delete, cdelete        # Delete a contact
+```
 
 #### Getting CLI Help
 ```bash
 # General help
 email-cli --help
 
-# Command-specific help
+# Command-specific help (works with any command)
 email-send --help
 esend --help
+contact-add --help
+cadd --help
 ```
 
 ### MCP Server Tools
 
 #### Basic Email Tools
 
-##### send_email
-Send a simple email to recipients.
-```json
-{
-  "to": "recipient@example.com,another@example.com",
-  "subject": "Hello World",
-  "body": "This is a test email",
-  "html": "<h1>Hello World</h1><p>This is a test email</p>"
-}
 ```
+
+For complete MCP server tool documentation and CLI usage, see **[CLI Usage Guide](docs/CLI_USAGE.md)**
 
 ##### send_email_with_attachments
 Send email with file attachments.
@@ -368,12 +383,47 @@ All operations return a standardized response format:
 
 ### Building
 ```bash
+npm run build
+# or
 pnpm run build
 ```
 
 ### Cleaning
 ```bash
+npm run clean  
+# or
 pnpm run clean
+```
+
+### Publishing to npm
+```bash
+# Login to npm
+npm login
+
+# Build the project
+npm run build
+
+# Publish to npm
+npm publish --access public
+```
+
+### Local Testing
+```bash
+# Install dependencies
+npm install
+
+# Build project
+npm run build
+
+# Link for local testing
+npm link
+
+# Test commands
+email-send --help
+esend "test@example.com" "Test" "Message"
+
+# Unlink when done
+npm unlink -g @0xshariq/email-mcp-server
 ```
 
 ### File Structure

@@ -1,12 +1,14 @@
 {
   "name": "@0xshariq/email-mcp-server",
   "version": "1.0.0",
-  "description": "A MCP Server that perform email operations",
+  "description": "A MCP Server + CLI Tool that perform email operations",
   "keywords": [
     "email",
     "mcp",
     "mcp",
-    "server"
+    "server",
+    "smtp",
+    "imap"
   ],
   "homepage": "https://github.com/0xshariq/email-mcp-server#readme",
   "bugs": {
@@ -20,6 +22,47 @@
   "author": "Sharique Chaudhary",
   "type": "module",
   "main": "index.js",
+  "bin": {
+    "email-cli": "./email-cli.js",
+    "email-send": "./email-cli.js",
+    "esend": "./email-cli.js",
+    "email-read": "./email-cli.js",
+    "eread": "./email-cli.js",
+    "email-get": "./email-cli.js",
+    "eget": "./email-cli.js",
+    "email-delete": "./email-cli.js",
+    "edelete": "./email-cli.js",
+    "email-mark-read": "./email-cli.js",
+    "emarkread": "./email-cli.js",
+    "email-search": "./email-cli.js",
+    "esearch": "./email-cli.js",
+    "email-attach": "./email-cli.js",
+    "eattach": "./email-cli.js",
+    "email-forward": "./email-cli.js",
+    "eforward": "./email-cli.js",
+    "email-reply": "./email-cli.js",
+    "ereply": "./email-cli.js",
+    "email-stats": "./email-cli.js",
+    "estats": "./email-cli.js",
+    "email-draft": "./email-cli.js",
+    "edraft": "./email-cli.js",
+    "email-schedule": "./email-cli.js",
+    "eschedule": "./email-cli.js",
+    "email-bulk": "./email-cli.js",
+    "ebulk": "./email-cli.js",
+    "contact-add": "./email-cli.js",
+    "cadd": "./email-cli.js",
+    "contact-list": "./email-cli.js",
+    "clist": "./email-cli.js",
+    "contact-search": "./email-cli.js",
+    "csearch": "./email-cli.js",
+    "contact-group": "./email-cli.js",
+    "cgroup": "./email-cli.js",
+    "contact-update": "./email-cli.js",
+    "cupdate": "./email-cli.js",
+    "contact-delete": "./email-cli.js",
+    "cdelete": "./email-cli.js"
+  },
   "scripts": {
     "build": "tsc -p .",
     "start": "node dist/index.js",
@@ -28,13 +71,13 @@
   "dependencies": {
     "@modelcontextprotocol/inspector": "^0.16.1",
     "@modelcontextprotocol/sdk": "^1.15.1",
-    "@types/nodemailer": "^7.0.2",
     "chalk": "^5.5.0",
     "imap-simple": "^5.1.0",
     "nodemailer": "^7.0.6"
   },
   "devDependencies": {
     "@types/imap-simple": "^4.2.10",
+    "@types/nodemailer": "^7.0.2",
     "@types/node": "^24.0.14",
     "typescript": "^5.8.3"
   }
