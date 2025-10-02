@@ -156,27 +156,36 @@ export function handleSuccess(result, message) {
     }
 }
 
-// Print styled help message
-export function printHelp(commandName, usage, description, examples, options = []) {
-    console.log(chalk.bold.cyan(`\n📧 ${commandName}\n`));
+// Generic clean help function - template for all commands
+export function showHelp(title, usage, description, examples, options = []) {
+    console.log(chalk.bold.cyan(`\n📧 ${title}\n`));
     
     console.log(chalk.bold('USAGE:'));
     console.log(chalk.cyan(`  ${usage}`));
+    console.log();
     
-    console.log(chalk.bold('\nDESCRIPTION:'));
+    console.log(chalk.bold('DESCRIPTION:'));
     console.log(`  ${description}`);
+    console.log();
     
     if (options.length > 0) {
-        console.log(chalk.bold('\nOPTIONS:'));
+        console.log(chalk.bold('OPTIONS:'));
         options.forEach(option => {
-            console.log(chalk.cyan(`  ${option.flag.padEnd(20)} ${option.description}`));
+            console.log(chalk.green(`  ${option.flag.padEnd(20)} ${option.description}`));
         });
+        console.log();
     }
     
-    console.log(chalk.bold('\nEXAMPLES:'));
+    console.log(chalk.bold('EXAMPLES:'));
     examples.forEach(example => {
-        console.log(chalk.green(`  ${example}`));
+        console.log(chalk.yellow(`  ${example}`));
     });
+    console.log();
+}
+
+// Legacy function for backward compatibility
+export function printHelp(commandName, usage, description, examples, options = []) {
+    showHelp(commandName, usage, description, examples, options);
 }
 
 // Spinner for loading states
@@ -225,4 +234,40 @@ export class Spinner {
 // Check for help flags
 export function checkHelpFlag(args) {
     return args.includes('--help') || args.includes('-h') || args.includes('help');
+}
+
+// Validate and resolve file paths for attachments
+export function validateAndResolveFilePath(filePath) {
+    if (!filePath) {
+        throw new Error('File path is required');
+    }
+    
+    // Handle different path formats
+    let resolvedPath;
+    
+    if (path.isAbsolute(filePath)) {
+        // Absolute path
+        resolvedPath = filePath;
+    } else {
+        // Relative path - resolve from current working directory
+        resolvedPath = path.resolve(process.cwd(), filePath);
+    }
+    
+    // Handle home directory shortcuts
+    if (filePath.startsWith('~/')) {
+        resolvedPath = path.join(process.env.HOME || process.env.USERPROFILE, filePath.slice(2));
+    }
+    
+    // Check if file exists
+    if (!fs.existsSync(resolvedPath)) {
+        throw new Error(`File not found: ${resolvedPath}`);
+    }
+    
+    // Check if it's actually a file (not a directory)
+    const stats = fs.statSync(resolvedPath);
+    if (!stats.isFile()) {
+        throw new Error(`Path is not a file: ${resolvedPath}`);
+    }
+    
+    return resolvedPath;
 }

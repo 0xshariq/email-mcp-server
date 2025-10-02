@@ -1,21 +1,23 @@
 #!/usr/bin/env node
 
-import { loadEnv, validateEnv, initializeEmailService, Spinner, checkHelpFlag, printHelp } from '../utils.js';
+import { loadEnv, validateEnv, initializeEmailService, Spinner, checkHelpFlag, showHelp, handleError, handleSuccess, validateAndResolveFilePath } from '../utils.js';
 import chalk from 'chalk';
-import fs from 'fs';
 import path from 'path';
+import fs from 'fs';
 
 async function main() {
     const args = process.argv.slice(2);
 
     if (checkHelpFlag(args)) {
-        printHelp(
+        showHelp(
             'Email Send with Attachment',
-            'email-attach.js <to> <subject> <body> <attachment_path> [attachment_name]',
-            'Send an email with file attachment.',
+            'email-attach <to> <subject> <body> <attachment_path> [attachment_name]',
+            'Send an email with file attachments from anywhere on your system.',
             [
-                'email-attach.js "user@example.com" "Report" "Please find attached" "/path/to/file.pdf"',
-                'email-attach.js "user@example.com" "Document" "See attachment" "/home/file.doc" "mydoc.doc"'
+                'email-attach user@example.com "Report" "Please find attached" /home/user/documents/report.pdf',
+                'email-attach user@example.com "Document" "See attachment" ~/Desktop/file.doc custom-name.doc',
+                'email-attach user@example.com "Images" "Photos attached" /absolute/path/to/image.jpg',
+                'email-attach user@example.com "Contract" "Legal document" ./relative/path/contract.pdf'
             ],
             [
                 { flag: '--help, -h', description: 'Show this help message' }
@@ -33,35 +35,46 @@ async function main() {
 
     const [to, subject, body, attachmentPath, attachmentName] = args;
 
-    // Check if attachment file exists
-    if (!fs.existsSync(attachmentPath)) {
-        console.error(chalk.red('❌ Error: Attachment file not found:'), chalk.yellow(attachmentPath));
-        process.exit(1);
-    }
-
     try {
-        const spinner = new Spinner('Initializing email service...').start();
-        const emailService = await initializeEmailService();
-        spinner.stop();
+        // Validate and resolve the attachment file path
+        const spinner = new Spinner('Validating attachment file...').start();
+        const resolvedPath = validateAndResolveFilePath(attachmentPath);
+        spinner.succeed(`Attachment file found: ${resolvedPath}`);
 
+        // Initialize email service
+        const initSpinner = new Spinner('Initializing email service...').start();
+        loadEnv();
+        validateEnv();
+        const emailService = await initializeEmailService();
+        initSpinner.succeed('Email service initialized');
+
+        // Prepare attachment
+        const filename = attachmentName || path.basename(resolvedPath);
         const attachments = [{
-            filename: attachmentName || attachmentPath.split('/').pop(),
-            path: attachmentPath
+            filename: filename,
+            path: resolvedPath
         }];
 
+        console.log(chalk.blue('\n📎 Attachment Details:'));
+        console.log(chalk.cyan(`   File: ${resolvedPath}`));
+        console.log(chalk.cyan(`   Name: ${filename}`));
+        console.log(chalk.cyan(`   Size: ${(fs.statSync(resolvedPath).size / 1024).toFixed(2)} KB`));
+
+        // Send email with attachment
         const sendSpinner = new Spinner('Sending email with attachment...').start();
         const recipients = to.split(',').map(email => email.trim());
         const result = await emailService.sendEmailWithAttachments(recipients, subject, body, attachments);
-        sendSpinner.stop();
+        sendSpinner.succeed('Email sent successfully');
 
         handleSuccess(null, 'Email with attachment sent successfully!');
         
-        console.log(chalk.blue('📧 Email Details:'));
+        console.log(chalk.blue('\n📧 Email Details:'));
         console.log(chalk.cyan(`   To: ${recipients.join(', ')}`));
         console.log(chalk.cyan(`   Subject: ${subject}`));
-        console.log(chalk.cyan(`   Attachment: ${attachments[0].filename}`));
-        console.log(chalk.cyan(`   Message ID: ${result.messageId}`));
-        console.log(chalk.dim(`   Response: ${result.response}`));
+        console.log(chalk.cyan(`   Attachment: ${filename}`));
+        if (result.messageId) {
+            console.log(chalk.cyan(`   Message ID: ${result.messageId}`));
+        }
         
         await emailService.close();
         
