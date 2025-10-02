@@ -10,17 +10,21 @@ async function main() {
 
     if (checkHelpFlag(args)) {
         showHelp(
-            'Email Send with Attachment',
-            'email-attach <to> <subject> <body> <attachment_path> [attachment_name]',
-            'Send an email with file attachments from anywhere on your system.',
+            '📎 Email Attach - Send email with file attachment',
+            ['email-attach <to> <subject> <body> <attachment-path> [attachment-name]', 'eattach <to> <subject> <body> <attachment-path> [attachment-name]'],
+            'Send an email with file attachments from anywhere on your system. The attachment name is optional - if not provided, the original filename will be used.',
             [
                 'email-attach user@example.com "Report" "Please find attached" /home/user/documents/report.pdf',
                 'email-attach user@example.com "Document" "See attachment" ~/Desktop/file.doc custom-name.doc',
-                'email-attach user@example.com "Images" "Photos attached" /absolute/path/to/image.jpg',
-                'email-attach user@example.com "Contract" "Legal document" ./relative/path/contract.pdf'
+                'eattach user@example.com "Images" "Photos attached" /absolute/path/to/image.jpg',
+                'eattach user@example.com "Contract" "Legal document" ./relative/path/contract.pdf'
             ],
             [
-                { flag: '--help, -h', description: 'Show this help message' }
+                { name: 'to', description: 'Recipient email address(es) - comma separated for multiple' },
+                { name: 'subject', description: 'Email subject line' },
+                { name: 'body', description: 'Email message body' },
+                { name: 'attachment-path', description: 'Path to the file to attach (absolute, relative, or ~/home paths)' },
+                { name: '[attachment-name]', description: 'Optional custom name for the attachment (uses original filename if not specified)' }
             ]
         );
         process.exit(0);
@@ -28,7 +32,8 @@ async function main() {
 
     if (args.length < 4) {
         console.error(chalk.red('❌ Error: Missing required arguments'));
-        console.error(chalk.yellow('Usage: email-attach.js <to> <subject> <body> <attachment_path> [attachment_name]'));
+        console.error(chalk.yellow('Usage: email-attach <to> <subject> <body> <attachment-path> [attachment-name]'));
+        console.error(chalk.gray('Note: attachment-name is optional - original filename will be used if not specified'));
         console.error(chalk.dim('Use --help for more information'));
         process.exit(1);
     }
@@ -61,10 +66,10 @@ async function main() {
         console.log(chalk.cyan(`   Size: ${(fs.statSync(resolvedPath).size / 1024).toFixed(2)} KB`));
 
         // Send email with attachment
-        const sendcreateSpinner = createSpinner('Sending email with attachment...').start();
+        const sendSpinner = createSpinner('Sending email with attachment...').start();
         const recipients = to.split(',').map(email => email.trim());
         const result = await emailService.sendEmailWithAttachments(recipients, subject, body, attachments);
-        sendcreateSpinner.succeed('Email sent successfully');
+        sendSpinner.succeed('Email sent successfully');
 
         handleSuccess(null, 'Email with attachment sent successfully!');
         
