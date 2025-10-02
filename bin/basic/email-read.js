@@ -60,6 +60,7 @@ async function main() {
 
         if (emails.length === 0) {
             console.log(chalk.yellow('📭 No emails found in your inbox.'));
+            await emailService.close();
             return;
         }
 
@@ -73,10 +74,23 @@ async function main() {
             console.log(chalk.gray(`   📄 Preview: ${email.body.substring(0, 80)}${email.body.length > 80 ? '...' : ''}`));
             console.log();
         });
+
+        // Close email service connection to properly terminate
+        await emailService.close();
         
     } catch (error) {
         spinner.fail('Failed to read emails');
         console.error(chalk.red('❌ Error:'), error.message);
+        
+        // Try to close email service if it was initialized
+        try {
+            if (typeof emailService !== 'undefined' && emailService.close) {
+                await emailService.close();
+            }
+        } catch (closeError) {
+            // Ignore close errors during error handling
+        }
+        
         process.exit(1);
     }
 }
