@@ -1,13 +1,27 @@
 #!/usr/bin/env node
 
-import { loadEnv, validateEnv, initializeContactService, Spinner } from '../utils.js';
+import { loadEnv, validateEnv, initializeContactService, createSpinner, showHelp } from '../utils.js';
 import chalk from 'chalk';
 
 async function updateContact() {
   const args = process.argv.slice(2);
   
   if (args.includes('--help') || args.includes('-h')) {
-    showHelp();
+    showHelp(
+      '✏️ Contact Update - Update contact information',
+      ['contact-update <contact-id> <field> <value>', 'cupdate <contact-id> <field> <value>'],
+      'Update a specific field of an existing contact in your address book.',
+      [
+        'contact-update 123 name "John Smith"',
+        'cupdate 456 email "new.email@example.com"',
+        'contact-update 789 phone "+1-555-0123"'
+      ],
+      [
+        { name: 'contact-id', description: 'Unique identifier of the contact to update' },
+        { name: 'field', description: 'Field to update (name, email, phone, group)' },
+        { name: 'value', description: 'New value for the field' }
+      ]
+    );
     return;
   }
 
@@ -18,7 +32,7 @@ async function updateContact() {
     process.exit(1);
   }
 
-  const spinner = new Spinner('Loading environment...');
+  const spinner = createSpinner('Loading environment...');
   
   try {
     // Load environment
@@ -64,33 +78,7 @@ async function updateContact() {
   }
 }
 
-function showHelp() {
-  console.log(chalk.bold.cyan('\n✏️ Contact Update - Update contact information\n'));
-  
-  console.log(chalk.bold('USAGE:'));
-  console.log(chalk.cyan('  contact-update <contact-id> <field> <value>'));
-  console.log(chalk.cyan('  cupdate <contact-id> <field> <value>'));
-  console.log();
-  
-  console.log(chalk.bold('ARGUMENTS:'));
-  console.log(chalk.green('  contact-id   ID of the contact to update'));
-  console.log(chalk.green('  field        Field to update (name, email, phone, group)'));
-  console.log(chalk.green('  value        New value for the field'));
-  console.log();
-  
-  console.log(chalk.bold('AVAILABLE FIELDS:'));
-  console.log(chalk.gray('  name    - Full name of the contact'));
-  console.log(chalk.gray('  email   - Email address'));
-  console.log(chalk.gray('  phone   - Phone number'));
-  console.log(chalk.gray('  group   - Contact group'));
-  console.log();
-  
-  console.log(chalk.bold('EXAMPLES:'));
-  console.log(chalk.yellow('  contact-update 123 name "John Smith Jr."'));
-  console.log(chalk.yellow('  cupdate 456 email "newemail@example.com"'));
-  console.log(chalk.yellow('  contact-update 789 group "family"'));
-  console.log();
-}
+
 
 updateContact().catch(error => {
   console.error(chalk.red('❌ Fatal error:'), error.message);

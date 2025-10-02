@@ -6,7 +6,7 @@
  * Supports: Single email, multiple emails (space or comma separated), batch mode
  */
 
-import { initializeEmailService, handleError, handleSuccess, Spinner, printHelp, checkHelpFlag } from '../utils.js';
+import { initializeEmailService, handleError, handleSuccess, createSpinner, showHelp, checkHelpFlag } from '../utils.js';
 import chalk from 'chalk';
 import readline from 'readline';
 
@@ -14,7 +14,7 @@ async function main() {
     const args = process.argv.slice(2);
 
     if (checkHelpFlag(args)) {
-        printHelp(
+        showHelp(
             'Email Delete',
             'email-delete.js <email_id1> [email_id2] [email_id3] ...',
             'Delete one or multiple emails from your inbox permanently.',
@@ -66,7 +66,7 @@ async function main() {
     emailIds = [...new Set(emailIds)];
 
     try {
-        const spinner = new Spinner('Initializing email service...').start();
+        const spinner = createSpinner('Initializing email service...').start();
         const emailService = await initializeEmailService();
         spinner.stop();
 
@@ -74,7 +74,7 @@ async function main() {
         console.log('');
 
         // Get all emails to show what will be deleted
-        const getSpinner = new Spinner('Fetching email details...').start();
+        const getcreateSpinner = createSpinner('Fetching email details...').start();
         const emailsToDelete = [];
         const notFoundIds = [];
 
@@ -91,7 +91,7 @@ async function main() {
                 notFoundIds.push(emailId);
             }
         }
-        getSpinner.stop();
+        getcreateSpinner.stop();
 
         if (notFoundIds.length > 0) {
             console.log(chalk.yellow(`⚠️  ${notFoundIds.length} email(s) not found:`));
@@ -151,7 +151,7 @@ async function main() {
         if (batchMode && emailsToDelete.length > 1) {
             // Batch delete - faster for multiple emails
             console.log(chalk.blue('🚀 Batch deleting emails...'));
-            const deleteSpinner = new Spinner(`Deleting ${emailsToDelete.length} emails in batch...`).start();
+            const deletecreateSpinner = createSpinner(`Deleting ${emailsToDelete.length} emails in batch...`).start();
             
             try {
                 // Delete all emails in parallel for better performance
@@ -175,9 +175,9 @@ async function main() {
                     }
                 });
                 
-                deleteSpinner.stop();
+                deletecreateSpinner.stop();
             } catch (error) {
-                deleteSpinner.fail('Batch delete failed');
+                deletecreateSpinner.fail('Batch delete failed');
                 console.error(chalk.red(`❌ Batch delete error: ${error.message}`));
                 process.exit(1);
             }
@@ -185,11 +185,11 @@ async function main() {
             // Individual delete - with progress for each email
             for (let i = 0; i < emailsToDelete.length; i++) {
                 const { id, email } = emailsToDelete[i];
-                const deleteSpinner = new Spinner(`Deleting email ${i + 1}/${emailsToDelete.length} (ID: ${id})...`).start();
+                const deletecreateSpinner = createSpinner(`Deleting email ${i + 1}/${emailsToDelete.length} (ID: ${id})...`).start();
                 
                 try {
                     const success = await emailService.deleteEmail(id);
-                    deleteSpinner.stop();
+                    deletecreateSpinner.stop();
                     
                     if (success) {
                         successCount++;
@@ -200,7 +200,7 @@ async function main() {
                         console.log(chalk.red(`❌ Failed to delete email ${id}: ${email.subject || 'No subject'}`));
                     }
                 } catch (error) {
-                    deleteSpinner.fail(`Failed to delete email ${id}`);
+                    deletecreateSpinner.fail(`Failed to delete email ${id}`);
                     failureCount++;
                     failures.push({ id, error: error.message });
                     console.log(chalk.red(`❌ Error deleting email ${id}: ${error.message}`));

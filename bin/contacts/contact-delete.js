@@ -1,13 +1,24 @@
 #!/usr/bin/env node
 
-import { loadEnv, validateEnv, initializeContactService, Spinner } from '../utils.js';
+import { loadEnv, validateEnv, initializeContactService, createSpinner, showHelp } from '../utils.js';
 import chalk from 'chalk';
 
 async function deleteContact() {
   const args = process.argv.slice(2);
   
   if (args.includes('--help') || args.includes('-h')) {
-    showHelp();
+    showHelp(
+      '🗑️ Contact Delete - Remove a contact from your address book',
+      ['contact-delete <contact-id>', 'cdelete <contact-id>'],
+      'Permanently delete a contact from your address book using their unique ID.',
+      [
+        'contact-delete 123',
+        'cdelete abc-def-456'
+      ],
+      [
+        { name: 'contact-id', description: 'Unique identifier of the contact to delete' }
+      ]
+    );
     return;
   }
 
@@ -18,7 +29,7 @@ async function deleteContact() {
     process.exit(1);
   }
 
-  const spinner = new Spinner('Loading environment...');
+  const spinner = createSpinner('Loading environment...');
   
   try {
     // Load environment
@@ -69,31 +80,7 @@ async function deleteContact() {
   }
 }
 
-function showHelp() {
-  console.log(chalk.bold.cyan('\n🗑️ Contact Delete - Remove a contact from your address book\n'));
-  
-  console.log(chalk.bold('USAGE:'));
-  console.log(chalk.cyan('  contact-delete <contact-id> [--force]'));
-  console.log(chalk.cyan('  cdelete <contact-id> [--force]'));
-  console.log();
-  
-  console.log(chalk.bold('ARGUMENTS:'));
-  console.log(chalk.green('  contact-id   ID of the contact to delete'));
-  console.log();
-  
-  console.log(chalk.bold('FLAGS:'));
-  console.log(chalk.green('  --force      Skip confirmation prompt'));
-  console.log();
-  
-  console.log(chalk.bold('EXAMPLES:'));
-  console.log(chalk.yellow('  contact-delete 123'));
-  console.log(chalk.yellow('  cdelete 456 --force'));
-  console.log();
-  
-  console.log(chalk.bold.red('⚠️ WARNING:'));
-  console.log(chalk.red('  This action permanently removes the contact and cannot be undone.'));
-  console.log();
-}
+
 
 deleteContact().catch(error => {
   console.error(chalk.red('❌ Fatal error:'), error.message);

@@ -5,22 +5,23 @@
  * Usage: email-get.js <email_id>
  */
 
-import { initializeEmailService, handleError, handleSuccess, Spinner, printHelp, checkHelpFlag } from '../utils.js';
+import { initializeEmailService, handleError, handleSuccess, createSpinner, showHelp, checkHelpFlag } from '../utils.js';
 import chalk from 'chalk';
 
 async function main() {
     const args = process.argv.slice(2);
 
     if (checkHelpFlag(args)) {
-        printHelp(
-            'Email Get',
-            'email-get.js <email_id>',
-            'Get a specific email by its ID.',
+        showHelp(
+            '📧 Email Get - Retrieve a specific email by ID',
+            ['email-get <email-id>', 'eget <email-id>'],
+            'Retrieve and display a specific email from your inbox using its unique ID.',
             [
-                'email-get.js 12345      # Get email with ID 12345'
+                'email-get 12345',
+                'eget 12345'
             ],
             [
-                { flag: '--help, -h', description: 'Show this help message' }
+                { name: 'email-id', description: 'Unique identifier of the email to retrieve' }
             ]
         );
         process.exit(0);
@@ -28,25 +29,25 @@ async function main() {
 
     if (args.length < 1) {
         console.error(chalk.red('❌ Error: Missing email ID'));
-        console.error(chalk.yellow('Usage: email-get.js <email_id>'));
-        console.error(chalk.dim('💡 Use "email-read.js" command first to get email IDs'));
+        console.error(chalk.yellow('Usage: email-get <email-id>'));
+        console.error(chalk.dim('💡 Use "email-read" command first to get email IDs'));
         process.exit(1);
     }
 
     const [emailId] = args;
 
     try {
-        const spinner = new Spinner('Initializing email service...').start();
+        const spinner = createSpinner('Initializing email service...').start();
         const emailService = await initializeEmailService();
-        spinner.stop();
+        spinner.succeed('Email service initialized');
 
-        const getSpinner = new Spinner(`Getting email ${emailId}...`).start();
-        const email = await emailService.getEmailById(emailId);
+        const getSpinner = createSpinner(`Getting email ${emailId}...`).start();
+        const email = await emailService.getEmail(emailId);
         getSpinner.stop();
 
         if (!email) {
             console.log(chalk.red('❌ Email not found with ID:'), chalk.yellow(emailId));
-            console.log(chalk.dim('💡 Use "email-read.js" command to see available email IDs'));
+            console.log(chalk.dim('💡 Use "email-read" command to see available email IDs'));
             process.exit(1);
         }
 
@@ -69,7 +70,7 @@ async function main() {
         console.log('');
         console.log(chalk.blue('📄 Email Body:'));
         console.log(chalk.gray('   ' + '─'.repeat(50)));
-        
+
         if (email.body && email.body.trim()) {
             // Split body into lines and add proper indentation
             const bodyLines = email.body.trim().split('\n');
@@ -79,7 +80,7 @@ async function main() {
         } else {
             console.log(chalk.dim('   (No body content)'));
         }
-        
+
         console.log(chalk.gray('   ' + '─'.repeat(50)));
 
         if (email.attachments && email.attachments.length > 0) {
@@ -91,7 +92,7 @@ async function main() {
         }
 
         await emailService.close();
-        
+
     } catch (error) {
         handleError(error, 'getting email');
     }

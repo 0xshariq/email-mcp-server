@@ -61,7 +61,10 @@
     "contact-update": "./email-cli.js",
     "cupdate": "./email-cli.js",
     "contact-delete": "./email-cli.js",
-    "cdelete": "./email-cli.js"
+    "cdelete": "./email-cli.js",
+    "email-list": "./email-cli.js",
+    "elist": "./email-cli.js",
+    "list": "./email-cli.js"
   },
   "scripts": {
     "build": "tsc -p .",
@@ -73,12 +76,13 @@
     "@modelcontextprotocol/sdk": "^1.15.1",
     "chalk": "^5.5.0",
     "imap-simple": "^5.1.0",
-    "nodemailer": "^7.0.6"
+    "nodemailer": "^7.0.6",
+    "ora": "^9.0.0"
   },
   "devDependencies": {
     "@types/imap-simple": "^4.2.10",
-    "@types/nodemailer": "^7.0.2",
     "@types/node": "^24.0.14",
+    "@types/nodemailer": "^7.0.2",
     "typescript": "^5.8.3"
   }
 }

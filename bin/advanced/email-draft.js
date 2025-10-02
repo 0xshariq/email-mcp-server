@@ -1,13 +1,26 @@
 #!/usr/bin/env node
 
-import { loadEnv, validateEnv, initializeEmailService, Spinner } from '../utils.js';
+import { loadEnv, validateEnv, initializeEmailService, createSpinner, showHelp } from '../utils.js';
 import chalk from 'chalk';
 
 async function createDraft() {
   const args = process.argv.slice(2);
   
   if (args.includes('--help') || args.includes('-h')) {
-    showHelp();
+    showHelp(
+      '📝 Email Draft - Create an email draft',
+      ['email-draft <to> <subject> <body>', 'edraft <to> <subject> <body>'],
+      'Create an email draft that can be edited and sent later.',
+      [
+        'email-draft "user@example.com" "Meeting Follow-up" "Thanks for today\'s meeting..."',
+        'edraft "team@company.com" "Weekly Report" "Please find the weekly report attached"'
+      ],
+      [
+        { name: 'to', description: 'Recipient email address' },
+        { name: 'subject', description: 'Email subject line' },
+        { name: 'body', description: 'Email message body' }
+      ]
+    );
     return;
   }
 
@@ -18,7 +31,7 @@ async function createDraft() {
     process.exit(1);
   }
 
-  const spinner = new Spinner('Loading environment...');
+  const spinner = createSpinner('Loading environment...');
   
   try {
     // Load environment
@@ -52,25 +65,7 @@ async function createDraft() {
   }
 }
 
-function showHelp() {
-  console.log(chalk.bold.cyan('\n📝 Email Draft - Create an email draft\n'));
-  
-  console.log(chalk.bold('USAGE:'));
-  console.log(chalk.cyan('  email-draft <to> <subject> <body>'));
-  console.log(chalk.cyan('  edraft <to> <subject> <body>'));
-  console.log();
-  
-  console.log(chalk.bold('ARGUMENTS:'));
-  console.log(chalk.green('  to          Recipient email address'));
-  console.log(chalk.green('  subject     Email subject line'));
-  console.log(chalk.green('  body        Email message body'));
-  console.log();
-  
-  console.log(chalk.bold('EXAMPLES:'));
-  console.log(chalk.yellow('  email-draft "user@example.com" "Meeting Follow-up" "Thanks for today\'s meeting..."'));
-  console.log(chalk.yellow('  edraft "team@company.com" "Weekly Report" "Please find the weekly report attached"'));
-  console.log();
-}
+
 
 createDraft().catch(error => {
   console.error(chalk.red('❌ Fatal error:'), error.message);

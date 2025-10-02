@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { loadEnv, validateEnv, initializeEmailService, Spinner, checkHelpFlag, showHelp, handleError, handleSuccess, validateAndResolveFilePath } from '../utils.js';
+import { loadEnv, validateEnv, initializeEmailService, createSpinner, checkHelpFlag, showHelp, handleError, handleSuccess, validateAndResolveFilePath } from '../utils.js';
 import chalk from 'chalk';
 import path from 'path';
 import fs from 'fs';
@@ -37,12 +37,12 @@ async function main() {
 
     try {
         // Validate and resolve the attachment file path
-        const spinner = new Spinner('Validating attachment file...').start();
+        const spinner = createSpinner('Validating attachment file...').start();
         const resolvedPath = validateAndResolveFilePath(attachmentPath);
         spinner.succeed(`Attachment file found: ${resolvedPath}`);
 
         // Initialize email service
-        const initSpinner = new Spinner('Initializing email service...').start();
+        const initSpinner = createSpinner('Initializing email service...').start();
         loadEnv();
         validateEnv();
         const emailService = await initializeEmailService();
@@ -61,10 +61,10 @@ async function main() {
         console.log(chalk.cyan(`   Size: ${(fs.statSync(resolvedPath).size / 1024).toFixed(2)} KB`));
 
         // Send email with attachment
-        const sendSpinner = new Spinner('Sending email with attachment...').start();
+        const sendcreateSpinner = createSpinner('Sending email with attachment...').start();
         const recipients = to.split(',').map(email => email.trim());
         const result = await emailService.sendEmailWithAttachments(recipients, subject, body, attachments);
-        sendSpinner.succeed('Email sent successfully');
+        sendcreateSpinner.succeed('Email sent successfully');
 
         handleSuccess(null, 'Email with attachment sent successfully!');
         

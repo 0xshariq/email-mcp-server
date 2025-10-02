@@ -490,6 +490,28 @@ export class EmailService {
     }
 
     /**
+     * Send bulk emails to multiple recipients
+     */
+    async sendBulkEmails(recipients: string[], subject: string, body: string, html?: string): Promise<{ sent: number, failed: number, results: any[] }> {
+        let sent = 0;
+        let failed = 0;
+        const results: any[] = [];
+
+        for (const recipient of recipients) {
+            try {
+                const result = await this.sendEmail(recipient, subject, body, html);
+                results.push({ recipient, success: true, result });
+                sent++;
+            } catch (error) {
+                results.push({ recipient, success: false, error: error instanceof Error ? error.message : String(error) });
+                failed++;
+            }
+        }
+
+        return { sent, failed, results };
+    }
+
+    /**
      * Bulk send emails
      */
     async bulkSendEmails(emails: Array<{

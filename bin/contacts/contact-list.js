@@ -1,17 +1,29 @@
 #!/usr/bin/env node
 
-import { loadEnv, validateEnv, initializeContactService, Spinner } from '../utils.js';
+import { loadEnv, validateEnv, initializeContactService, createSpinner, showHelp } from '../utils.js';
 import chalk from 'chalk';
 
 async function listContacts() {
   const args = process.argv.slice(2);
   
   if (args.includes('--help') || args.includes('-h')) {
-    showHelp();
+    showHelp(
+      '👥 Contact List - Display all contacts in your address book',
+      ['contact-list [limit]', 'clist [limit]'],
+      'Display all contacts in your address book with their details including name, email, group, and phone number.',
+      [
+        'contact-list',
+        'clist 50',
+        'contact-list 10'
+      ],
+      [
+        { name: 'limit', description: 'Maximum number of contacts to display (default: 20)' }
+      ]
+    );
     return;
   }
 
-  const spinner = new Spinner('Loading environment...');
+  const spinner = createSpinner('Loading environment...');
   
   try {
     // Load environment
@@ -57,24 +69,7 @@ async function listContacts() {
   }
 }
 
-function showHelp() {
-  console.log(chalk.bold.cyan('\n👥 Contact List - Display all contacts in your address book\n'));
-  
-  console.log(chalk.bold('USAGE:'));
-  console.log(chalk.cyan('  contact-list [limit]'));
-  console.log(chalk.cyan('  clist [limit]'));
-  console.log();
-  
-  console.log(chalk.bold('ARGUMENTS:'));
-  console.log(chalk.green('  limit    Maximum number of contacts to display (default: 20)'));
-  console.log();
-  
-  console.log(chalk.bold('EXAMPLES:'));
-  console.log(chalk.yellow('  contact-list'));
-  console.log(chalk.yellow('  clist 50'));
-  console.log(chalk.yellow('  contact-list 10'));
-  console.log();
-}
+
 
 listContacts().catch(error => {
   console.error(chalk.red('❌ Fatal error:'), error.message);

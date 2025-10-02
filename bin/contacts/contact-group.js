@@ -1,13 +1,25 @@
 #!/usr/bin/env node
 
-import { loadEnv, validateEnv, initializeContactService, Spinner } from '../utils.js';
+import { loadEnv, validateEnv, initializeContactService, createSpinner, showHelp } from '../utils.js';
 import chalk from 'chalk';
 
 async function getContactsByGroup() {
   const args = process.argv.slice(2);
   
   if (args.includes('--help') || args.includes('-h')) {
-    showHelp();
+    showHelp(
+      '👥 Contact Group - List contacts in a specific group',
+      ['contact-group <group-name>', 'cgroup <group-name>'],
+      'Display all contacts that belong to a specific group in your address book.',
+      [
+        'contact-group work',
+        'cgroup family',
+        'contact-group clients'
+      ],
+      [
+        { name: 'group-name', description: 'Name of the group to list contacts from' }
+      ]
+    );
     return;
   }
 
@@ -18,7 +30,7 @@ async function getContactsByGroup() {
     process.exit(1);
   }
 
-  const spinner = new Spinner('Loading environment...');
+  const spinner = createSpinner('Loading environment...');
   
   try {
     // Load environment
@@ -63,29 +75,7 @@ async function getContactsByGroup() {
   }
 }
 
-function showHelp() {
-  console.log(chalk.bold.cyan('\n👥 Contact Group - Get all contacts in a specific group\n'));
-  
-  console.log(chalk.bold('USAGE:'));
-  console.log(chalk.cyan('  contact-group <group-name>'));
-  console.log(chalk.cyan('  cgroup <group-name>'));
-  console.log();
-  
-  console.log(chalk.bold('ARGUMENTS:'));
-  console.log(chalk.green('  group-name   Name of the contact group'));
-  console.log();
-  
-  console.log(chalk.bold('COMMON GROUPS:'));
-  console.log(chalk.gray('  • work, friends, family, general'));
-  console.log(chalk.gray('  • clients, suppliers, team'));
-  console.log();
-  
-  console.log(chalk.bold('EXAMPLES:'));
-  console.log(chalk.yellow('  contact-group "work"'));
-  console.log(chalk.yellow('  cgroup "friends"'));
-  console.log(chalk.yellow('  contact-group "clients"'));
-  console.log();
-}
+
 
 getContactsByGroup().catch(error => {
   console.error(chalk.red('❌ Fatal error:'), error.message);

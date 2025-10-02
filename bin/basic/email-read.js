@@ -1,32 +1,25 @@
 #!/usr/bin/env node
 
-import { loadEnv, validateEnv, initializeEmailService, Spinner } from '../utils.js';
+import { loadEnv, validateEnv, initializeEmailService, createSpinner, showHelp } from '../utils.js';
 import chalk from 'chalk';
-
-function showHelp() {
-  console.log(chalk.bold.cyan('\n📬 Email Read - Read recent emails from inbox\n'));
-  
-  console.log(chalk.bold('USAGE:'));
-  console.log(chalk.cyan('  email-read [count]'));
-  console.log(chalk.cyan('  eread [count]'));
-  console.log();
-  
-  console.log(chalk.bold('ARGUMENTS:'));
-  console.log(chalk.green('  count       Number of emails to read (default: 10)'));
-  console.log();
-  
-  console.log(chalk.bold('EXAMPLES:'));
-  console.log(chalk.yellow('  email-read           # Read 10 recent emails'));
-  console.log(chalk.yellow('  eread 5              # Read 5 recent emails'));
-  console.log(chalk.yellow('  email-read 20        # Read 20 recent emails'));
-  console.log();
-}
 
 async function main() {
     const args = process.argv.slice(2);
 
     if (args.includes('--help') || args.includes('-h')) {
-        showHelp();
+        showHelp(
+            'Email Read',
+            'email-read [count]',
+            'Read recent emails from your inbox.',
+            [
+                'email-read',
+                'eread 5',
+                'email-read 20'
+            ],
+            [
+                { flag: '--help, -h', description: 'Show this help message' }
+            ]
+        );
         return;
     }
 
@@ -39,7 +32,7 @@ async function main() {
         process.exit(1);
     }
 
-    const spinner = new Spinner('Loading environment...');
+    const spinner = createSpinner('Loading environment...');
     
     try {
         // Load environment

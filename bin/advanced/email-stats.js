@@ -1,17 +1,25 @@
 #!/usr/bin/env node
 
-import { loadEnv, validateEnv, initializeEmailService, Spinner } from '../utils.js';
+import { loadEnv, validateEnv, initializeEmailService, createSpinner, showHelp } from '../utils.js';
 import chalk from 'chalk';
 
 async function getEmailStats() {
   const args = process.argv.slice(2);
   
   if (args.includes('--help') || args.includes('-h')) {
-    showHelp();
+    showHelp(
+      '📊 Email Statistics - Get detailed email account statistics',
+      ['email-stats', 'estats'],
+      'Displays comprehensive statistics about your email account including total emails, read/unread counts, sent emails, and top senders.',
+      [
+        'email-stats',
+        'estats'
+      ]
+    );
     return;
   }
 
-  const spinner = new Spinner('Loading environment...');
+  const spinner = createSpinner('Loading environment...');
   
   try {
     // Load environment
@@ -51,27 +59,7 @@ async function getEmailStats() {
   }
 }
 
-function showHelp() {
-  console.log(chalk.bold.cyan('\n📊 Email Statistics - Get detailed email account statistics\n'));
-  
-  console.log(chalk.bold('USAGE:'));
-  console.log(chalk.cyan('  email-stats'));
-  console.log(chalk.cyan('  estats'));
-  console.log();
-  
-  console.log(chalk.bold('DESCRIPTION:'));
-  console.log(chalk.gray('  Displays comprehensive statistics about your email account including:'));
-  console.log(chalk.gray('  • Total number of emails'));
-  console.log(chalk.gray('  • Read vs unread email counts'));
-  console.log(chalk.gray('  • Sent emails count'));
-  console.log(chalk.gray('  • Top senders information'));
-  console.log();
-  
-  console.log(chalk.bold('EXAMPLES:'));
-  console.log(chalk.yellow('  email-stats'));
-  console.log(chalk.yellow('  estats'));
-  console.log();
-}
+
 
 getEmailStats().catch(error => {
   console.error(chalk.red('❌ Fatal error:'), error.message);

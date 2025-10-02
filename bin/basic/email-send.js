@@ -6,7 +6,7 @@
 
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { loadEnv, validateEnv, initializeEmailService, Spinner, showHelp } from '../utils.js';
+import { loadEnv, validateEnv, initializeEmailService, createSpinner, showHelp } from '../utils.js';
 import chalk from 'chalk';
 
 // Get the directory of this script
@@ -46,7 +46,7 @@ async function main() {
         process.exit(1);
     }
 
-    const spinner = new Spinner('Loading environment...');
+    const spinner = createSpinner('Loading environment...');
     
     try {
         // Load environment

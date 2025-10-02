@@ -1,13 +1,25 @@
 #!/usr/bin/env node
 
-import { loadEnv, validateEnv, initializeEmailService, Spinner } from '../utils.js';
+import { loadEnv, validateEnv, initializeEmailService, createSpinner, showHelp } from '../utils.js';
 import chalk from 'chalk';
 
 async function replyToEmail() {
   const args = process.argv.slice(2);
   
   if (args.includes('--help') || args.includes('-h')) {
-    showHelp();
+    showHelp(
+      '📧 Email Reply - Reply to an email',
+      ['email-reply <email-id> <message>', 'ereply <email-id> <message>'],
+      'Reply to an existing email with a new message.',
+      [
+        'email-reply 123 "Thanks for the update!"',
+        'ereply 456 "I agree with your proposal"'
+      ],
+      [
+        { name: 'email-id', description: 'ID of the email to reply to' },
+        { name: 'message', description: 'Reply message content' }
+      ]
+    );
     return;
   }
 
@@ -18,7 +30,7 @@ async function replyToEmail() {
     process.exit(1);
   }
 
-  const spinner = new Spinner('Loading environment...');
+  const spinner = createSpinner('Loading environment...');
   
   try {
     // Load environment
@@ -49,24 +61,7 @@ async function replyToEmail() {
   }
 }
 
-function showHelp() {
-  console.log(chalk.bold.cyan('\n📧 Email Reply - Reply to an email\n'));
-  
-  console.log(chalk.bold('USAGE:'));
-  console.log(chalk.cyan('  email-reply <email-id> <message>'));
-  console.log(chalk.cyan('  ereply <email-id> <message>'));
-  console.log();
-  
-  console.log(chalk.bold('ARGUMENTS:'));
-  console.log(chalk.green('  email-id    ID of the email to reply to'));
-  console.log(chalk.green('  message     Reply message content'));
-  console.log();
-  
-  console.log(chalk.bold('EXAMPLES:'));
-  console.log(chalk.yellow('  email-reply 123 "Thanks for the update!"'));
-  console.log(chalk.yellow('  ereply 456 "I agree with your proposal"'));
-  console.log();
-}
+
 
 replyToEmail().catch(error => {
   console.error(chalk.red('❌ Fatal error:'), error.message);

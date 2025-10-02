@@ -88,7 +88,12 @@ const commands = {
   'contact-update': 'contacts/contact-update.js',
   'cupdate': 'contacts/contact-update.js',
   'contact-delete': 'contacts/contact-delete.js',
-  'cdelete': 'contacts/contact-delete.js'
+  'cdelete': 'contacts/contact-delete.js',
+  
+  // Utility Commands
+  'email-list': 'basic/email-list.js',
+  'elist': 'basic/email-list.js',
+  'list': 'basic/email-list.js'
 };
 
 async function main() {
@@ -181,6 +186,10 @@ function showUsage() {
   console.log(chalk.magenta('  contact-group, cgroup      Get contacts by group'));
   console.log(chalk.magenta('  contact-update, cupdate    Update contact info'));
   console.log(chalk.magenta('  contact-delete, cdelete    Delete a contact'));
+  console.log();
+  
+  console.log(chalk.bold.blue('Utility Commands:'));
+  console.log(chalk.cyan('  email-list, elist, list    Show all available commands'));
   console.log();
   
   console.log(chalk.bold.yellow('Usage:'));

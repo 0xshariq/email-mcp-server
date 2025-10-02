@@ -5,21 +5,22 @@
  * Usage: esearch.js [options]
  */
 
-import { initializeEmailService, handleError, handleSuccess, Spinner, printHelp, checkHelpFlag } from '../utils.js';
+import { initializeEmailService, handleError, handleSuccess, createSpinner, showHelp, checkHelpFlag } from '../utils.js';
 import chalk from 'chalk';
 
 async function main() {
     const args = process.argv.slice(2);
 
     if (checkHelpFlag(args)) {
-        printHelp(
+        showHelp(
             'Email Search',
             'email-search [options]',
             'Search emails with advanced filters.',
             [
-                'email-search --from "boss@company.com" --seen false',
-                'email-search --subject "meeting" --since "2024-01-01"',
-                'email-search --to "me@company.com" --limit 5'
+                'email-search --from boss@company.com --seen false',
+                'email-search --subject meeting --since 2024-01-01',
+                'email-search --to me@company.com --limit 5',
+                'esearch --from support@npmjs.com'
             ],
             [
                 { flag: '--from <email>', description: 'Filter by sender email' },
@@ -76,16 +77,15 @@ async function main() {
     }
 
     try {
-        const spinner = new Spinner('Initializing email service...').start();
+        const spinner = createSpinner('Initializing email service...').start();
         const emailService = await initializeEmailService();
         spinner.stop();
 
-        const searchSpinner = new Spinner('Searching emails...').start();
-        const result = await emailService.searchEmails(
-            searchArgs,
-            searchArgs.page || 1,
-            searchArgs.limit || 10
-        );
+        const searchSpinner = createSpinner('Searching emails...').start();
+        const results = await emailService.searchEmails(query);
+        
+        // Display results
+        handleSuccess(results, `Found ${results.length} email(s) matching "${query}"`);
         searchSpinner.stop();
 
         handleSuccess(null, `Found ${result.total} emails matching your criteria:`);

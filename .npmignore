@@ -1,0 +1,6 @@
+docs/
+src/
+.env.*
+.gitignore
+setup-symlinks.sh
+tsconfig.json

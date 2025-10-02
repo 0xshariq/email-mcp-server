@@ -9,6 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import chalk from 'chalk';
+import ora from 'ora';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -158,20 +159,24 @@ export function handleSuccess(result, message) {
 
 // Generic clean help function - template for all commands
 export function showHelp(title, usage, description, examples, options = []) {
-    console.log(chalk.bold.cyan(`\n📧 ${title}\n`));
+    console.log(chalk.bold.cyan(`\n${title}\n`));
     
     console.log(chalk.bold('USAGE:'));
-    console.log(chalk.cyan(`  ${usage}`));
+    if (Array.isArray(usage)) {
+        usage.forEach(u => console.log(chalk.cyan(`  ${u}`)));
+    } else {
+        console.log(chalk.cyan(`  ${usage}`));
+    }
     console.log();
     
     console.log(chalk.bold('DESCRIPTION:'));
     console.log(`  ${description}`);
     console.log();
     
-    if (options.length > 0) {
-        console.log(chalk.bold('OPTIONS:'));
+    if (options && options.length > 0) {
+        console.log(chalk.bold('ARGUMENTS:'));
         options.forEach(option => {
-            console.log(chalk.green(`  ${option.flag.padEnd(20)} ${option.description}`));
+            console.log(chalk.green(`  ${option.name.padEnd(20)} ${option.description}`));
         });
         console.log();
     }
@@ -188,46 +193,34 @@ export function printHelp(commandName, usage, description, examples, options = [
     showHelp(commandName, usage, description, examples, options);
 }
 
-// Spinner for loading states
+// createSpinner using ora package
+export function createSpinner(message = 'Loading...') {
+    return ora(message);
+}
+
+// Legacy Spinner class for backward compatibility
 export class Spinner {
     constructor(message = 'Loading...') {
-        this.message = message;
-        this.chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-        this.index = 0;
-        this.interval = null;
+        this.spinner = ora(message);
     }
     
-    start(message = null) {
-        if (message) this.message = message;
-        process.stdout.write(`\r${chalk.yellow(this.chars[this.index])} ${chalk.dim(this.message)}`);
-        this.interval = setInterval(() => {
-            this.index = (this.index + 1) % this.chars.length;
-            process.stdout.write(`\r${chalk.yellow(this.chars[this.index])} ${chalk.dim(this.message)}`);
-        }, 80);
-        return this;
-    }
-    
-    succeed(message = null) {
-        this.stop();
-        const successMessage = message || this.message.replace('...', '');
-        console.log(`${chalk.green('✅')} ${chalk.dim(successMessage)}`);
-    }
-    
-    fail(message = null) {
-        this.stop();
-        const failMessage = message || this.message.replace('...', '');
-        console.log(`${chalk.red('❌')} ${chalk.dim(failMessage)}`);
-    }
-    
-    stop(message = null) {
-        if (this.interval) {
-            clearInterval(this.interval);
-            this.interval = null;
-        }
-        process.stdout.write('\r' + ' '.repeat(50) + '\r');
+    start(message) {
         if (message) {
-            console.log(message);
+            this.spinner.text = message;
         }
+        this.spinner.start();
+    }
+    
+    succeed(message) {
+        this.spinner.succeed(message);
+    }
+    
+    fail(message) {
+        this.spinner.fail(message);
+    }
+    
+    stop() {
+        this.spinner.stop();
     }
 }
 

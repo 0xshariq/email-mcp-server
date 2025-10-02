@@ -15,6 +15,8 @@ sudo ln -sf "$CLI_FILE" /usr/local/bin/email-delete
 sudo ln -sf "$CLI_FILE" /usr/local/bin/edelete
 sudo ln -sf "$CLI_FILE" /usr/local/bin/email-mark-read
 sudo ln -sf "$CLI_FILE" /usr/local/bin/emarkread
+sudo ln -sf "$CLI_FILE" /usr/local/bin/email-list
+sudo ln -sf "$CLI_FILE" /usr/local/bin/elist
 
 # Advanced Email Commands
 sudo ln -sf "$CLI_FILE" /usr/local/bin/email-search

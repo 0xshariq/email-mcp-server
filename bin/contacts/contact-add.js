@@ -5,14 +5,14 @@
  * Usage: contact-add.js <name> <email> [group]
  */
 
-import { initializeContactService, handleError, handleSuccess, Spinner, printHelp, checkHelpFlag, loadEnv, validateEnv } from '../utils.js';
+import { initializeContactService, handleError, handleSuccess, createSpinner, showHelp, checkHelpFlag, loadEnv, validateEnv } from '../utils.js';
 import chalk from 'chalk';
 
 async function main() {
   const args = process.argv.slice(2);
 
   if (checkHelpFlag(args)) {
-    printHelp(
+    showHelp(
       'Contact Add',
       'contact-add.js <name> <email> [group]',
       'Add a new contact to your address book.',
@@ -37,7 +37,7 @@ async function main() {
     process.exit(1);
   }
 
-  const spinner = new Spinner('Loading environment...');
+  const spinner = createSpinner('Loading environment...');
   
   try {
     // Load environment

@@ -1,13 +1,25 @@
 #!/usr/bin/env node
 
-import { loadEnv, validateEnv, initializeContactService, Spinner } from '../utils.js';
+import { loadEnv, validateEnv, initializeContactService, createSpinner, showHelp } from '../utils.js';
 import chalk from 'chalk';
 
 async function searchContacts() {
   const args = process.argv.slice(2);
   
   if (args.includes('--help') || args.includes('-h')) {
-    showHelp();
+    showHelp(
+      '🔍 Contact Search - Search contacts by name or email',
+      ['contact-search <query>', 'csearch <query>'],
+      'Search for contacts in your address book by name or email address.',
+      [
+        'contact-search "John"',
+        'csearch "gmail.com"',
+        'contact-search "Smith"'
+      ],
+      [
+        { name: 'query', description: 'Search term to find contacts (matches name or email)' }
+      ]
+    );
     return;
   }
 
@@ -18,7 +30,7 @@ async function searchContacts() {
     process.exit(1);
   }
 
-  const spinner = new Spinner('Loading environment...');
+  const spinner = createSpinner('Loading environment...');
   
   try {
     // Load environment
@@ -64,30 +76,7 @@ async function searchContacts() {
   }
 }
 
-function showHelp() {
-  console.log(chalk.bold.cyan('\n🔍 Contact Search - Search contacts by name, email, or group\n'));
-  
-  console.log(chalk.bold('USAGE:'));
-  console.log(chalk.cyan('  contact-search <query>'));
-  console.log(chalk.cyan('  csearch <query>'));
-  console.log();
-  
-  console.log(chalk.bold('ARGUMENTS:'));
-  console.log(chalk.green('  query    Search term (name, email, or group)'));
-  console.log();
-  
-  console.log(chalk.bold('SEARCH TYPES:'));
-  console.log(chalk.gray('  • Name search: "John", "Smith"'));
-  console.log(chalk.gray('  • Email search: "gmail.com", "user@"'));
-  console.log(chalk.gray('  • Group search: "work", "friends"'));
-  console.log();
-  
-  console.log(chalk.bold('EXAMPLES:'));
-  console.log(chalk.yellow('  contact-search "John"'));
-  console.log(chalk.yellow('  csearch "gmail.com"'));
-  console.log(chalk.yellow('  contact-search "work"'));
-  console.log();
-}
+
 
 searchContacts().catch(error => {
   console.error(chalk.red('❌ Fatal error:'), error.message);

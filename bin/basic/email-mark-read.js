@@ -5,14 +5,14 @@
  * Usage: email-mark-read.js <email_id> [true|false]
  */
 
-import { initializeEmailService, handleError, handleSuccess, Spinner, printHelp, checkHelpFlag } from '../utils.js';
+import { initializeEmailService, handleError, handleSuccess, createSpinner, showHelp, checkHelpFlag } from '../utils.js';
 import chalk from 'chalk';
 
 async function main() {
     const args = process.argv.slice(2);
 
     if (checkHelpFlag(args)) {
-        printHelp(
+        showHelp(
             'Email Mark Read',
             'email-mark-read.js <email_id> [true|false]',
             'Mark an email as read or unread.',
@@ -39,13 +39,13 @@ async function main() {
     const read = readStatus !== 'false';
 
     try {
-        const spinner = new Spinner('Initializing email service...').start();
+        const spinner = createSpinner('Initializing email service...').start();
         const emailService = await initializeEmailService();
         spinner.stop();
 
-        const markSpinner = new Spinner(`Marking email ${emailId} as ${read ? 'read' : 'unread'}...`).start();
+        const markcreateSpinner = createSpinner(`Marking email ${emailId} as ${read ? 'read' : 'unread'}...`).start();
         const success = await emailService.markEmailAsRead(emailId, read);
-        markSpinner.stop();
+        markcreateSpinner.stop();
 
         if (success) {
             handleSuccess(null, `Email ${emailId} marked as ${read ? 'read' : 'unread'}!`);

@@ -1,13 +1,27 @@
 #!/usr/bin/env node
 
-import { loadEnv, validateEnv, initializeEmailService, Spinner } from '../utils.js';
+import { loadEnv, validateEnv, initializeEmailService, createSpinner, showHelp } from '../utils.js';
 import chalk from 'chalk';
 
 async function scheduleEmail() {
   const args = process.argv.slice(2);
   
   if (args.includes('--help') || args.includes('-h')) {
-    showHelp();
+    showHelp(
+      '⏰ Email Schedule - Schedule an email for later delivery',
+      ['email-schedule <to> <subject> <body> <schedule-time>', 'eschedule <to> <subject> <body> <schedule-time>'],
+      'Schedule an email to be sent at a specific time in the future.',
+      [
+        'email-schedule "user@example.com" "Reminder" "Don\'t forget!" "2024-12-25T09:00:00Z"',
+        'eschedule "team@company.com" "Report" "Weekly report" "+2h"'
+      ],
+      [
+        { name: 'to', description: 'Recipient email address' },
+        { name: 'subject', description: 'Email subject line' },
+        { name: 'body', description: 'Email message body' },
+        { name: 'schedule-time', description: 'When to send (ISO format or relative like +1h, +30m, +1d)' }
+      ]
+    );
     return;
   }
 
@@ -18,7 +32,7 @@ async function scheduleEmail() {
     process.exit(1);
   }
 
-  const spinner = new Spinner('Loading environment...');
+  const spinner = createSpinner('Loading environment...');
   
   try {
     // Load environment
@@ -53,31 +67,7 @@ async function scheduleEmail() {
   }
 }
 
-function showHelp() {
-  console.log(chalk.bold.cyan('\n⏰ Email Schedule - Schedule an email for later delivery\n'));
-  
-  console.log(chalk.bold('USAGE:'));
-  console.log(chalk.cyan('  email-schedule <to> <subject> <body> <schedule-time>'));
-  console.log(chalk.cyan('  eschedule <to> <subject> <body> <schedule-time>'));
-  console.log();
-  
-  console.log(chalk.bold('ARGUMENTS:'));
-  console.log(chalk.green('  to             Recipient email address'));
-  console.log(chalk.green('  subject        Email subject line'));
-  console.log(chalk.green('  body           Email message body'));
-  console.log(chalk.green('  schedule-time  When to send (ISO format or relative)'));
-  console.log();
-  
-  console.log(chalk.bold('TIME FORMATS:'));
-  console.log(chalk.gray('  ISO Format: 2024-12-25T09:00:00Z'));
-  console.log(chalk.gray('  Relative: +1h (1 hour), +30m (30 minutes), +1d (1 day)'));
-  console.log();
-  
-  console.log(chalk.bold('EXAMPLES:'));
-  console.log(chalk.yellow('  email-schedule "user@example.com" "Reminder" "Don\'t forget!" "2024-12-25T09:00:00Z"'));
-  console.log(chalk.yellow('  eschedule "team@company.com" "Report" "Weekly report" "+2h"'));
-  console.log();
-}
+
 
 scheduleEmail().catch(error => {
   console.error(chalk.red('❌ Fatal error:'), error.message);

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { loadEnv, validateEnv, initializeEmailService, Spinner } from '../utils.js';
+import { loadEnv, validateEnv, initializeEmailService, createSpinner, showHelp } from '../utils.js';
 import chalk from 'chalk';
 import fs from 'fs';
 import path from 'path';
@@ -9,7 +9,18 @@ async function bulkSendEmails() {
   const args = process.argv.slice(2);
   
   if (args.includes('--help') || args.includes('-h')) {
-    showHelp();
+    showHelp(
+      'Email Bulk Send',
+      'email-bulk <recipients-file> <subject> <body>',
+      'Send emails to multiple recipients from a file.',
+      [
+        'email-bulk recipients.txt "Newsletter" "Welcome to our newsletter!"',
+        'ebulk emails.txt "Update" "New features available"'
+      ],
+      [
+        { flag: '--help, -h', description: 'Show this help message' }
+      ]
+    );
     return;
   }
 
@@ -20,7 +31,7 @@ async function bulkSendEmails() {
     process.exit(1);
   }
 
-  const spinner = new Spinner('Loading environment...');
+  const spinner = createSpinner('Loading environment...');
   
   try {
     // Load environment
@@ -80,31 +91,7 @@ async function bulkSendEmails() {
   }
 }
 
-function showHelp() {
-  console.log(chalk.bold.cyan('\n📤 Email Bulk Send - Send emails to multiple recipients\n'));
-  
-  console.log(chalk.bold('USAGE:'));
-  console.log(chalk.cyan('  email-bulk <recipients-file> <subject> <body>'));
-  console.log(chalk.cyan('  ebulk <recipients-file> <subject> <body>'));
-  console.log();
-  
-  console.log(chalk.bold('ARGUMENTS:'));
-  console.log(chalk.green('  recipients-file  Text file containing email addresses (one per line)'));
-  console.log(chalk.green('  subject          Email subject line'));
-  console.log(chalk.green('  body             Email message body'));
-  console.log();
-  
-  console.log(chalk.bold('RECIPIENTS FILE FORMAT:'));
-  console.log(chalk.gray('  user1@example.com'));
-  console.log(chalk.gray('  user2@example.com'));
-  console.log(chalk.gray('  user3@example.com'));
-  console.log();
-  
-  console.log(chalk.bold('EXAMPLES:'));
-  console.log(chalk.yellow('  email-bulk recipients.txt "Newsletter" "Check out our latest updates!"'));
-  console.log(chalk.yellow('  ebulk team-emails.txt "Meeting Reminder" "Team meeting tomorrow at 2 PM"'));
-  console.log();
-}
+
 
 bulkSendEmails().catch(error => {
   console.error(chalk.red('❌ Fatal error:'), error.message);
