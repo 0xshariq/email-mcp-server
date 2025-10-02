@@ -165,7 +165,7 @@ function listCommands() {
   console.log(chalk.yellow('   email-send user@example.com "Hello" "Test message"'));
   console.log(chalk.yellow('   email-bulk recipients.txt "Newsletter" "Monthly update"'));
   console.log(chalk.yellow('   contact-add "John Doe" "john@example.com" "+1-555-0123" "work"'));
-  console.log(chalk.yellow('   email-attach "user@example.com" "Report" "See attached" "./report.pdf"'));
+  console.log(chalk.yellow('   email-attach user@example.com "Report" "See attached" "./report.pdf"'));
   console.log();
   console.log(chalk.dim('💡 Tip: All commands have short aliases (shown after /) for faster typing!'));
 }
