@@ -5,7 +5,7 @@
  * Usage: email-get.js <email_id>
  */
 
-import { initializeEmailService, handleError, handleSuccess, createSpinner, showHelp, checkHelpFlag } from '../utils.js';
+import { initializeEmailService, handleError, handleSuccess, createSpinner, showHelp, checkHelpFlag, cleanEmailBody } from '../utils.js';
 import chalk from 'chalk';
 
 async function main() {
@@ -41,6 +41,9 @@ async function main() {
         const emailService = await initializeEmailService();
         spinner.succeed('Email service initialized');
 
+        // Display current user info
+        console.log(chalk.dim(`📧 Using account: ${process.env.EMAIL_USER || 'Not configured'}`));
+
         const getSpinner = createSpinner(`Getting email ${emailId}...`).start();
         const email = await emailService.getEmailById(emailId);
         getSpinner.succeed('Email retrieved');
@@ -72,11 +75,38 @@ async function main() {
         console.log(chalk.gray('   ' + '─'.repeat(50)));
 
         if (email.body && email.body.trim()) {
-            // Split body into lines and add proper indentation
-            const bodyLines = email.body.trim().split('\n');
-            bodyLines.forEach(line => {
-                console.log(`   ${line}`);
+            // Use the utility function to clean and format the email body
+            const cleanBody = cleanEmailBody(email.body);
+            
+            // Display the full cleaned body with proper formatting
+            const lines = cleanBody.split('\n');
+            lines.forEach(line => {
+                if (line.length > 70) {
+                    // Wrap long lines
+                    const words = line.split(' ');
+                    let currentLine = '';
+                    for (const word of words) {
+                        if ((currentLine + ' ' + word).length > 70) {
+                            if (currentLine) {
+                                console.log(`   ${currentLine}`);
+                                currentLine = word;
+                            } else {
+                                console.log(`   ${word}`);
+                            }
+                        } else {
+                            currentLine += (currentLine ? ' ' : '') + word;
+                        }
+                    }
+                    if (currentLine) {
+                        console.log(`   ${currentLine}`);
+                    }
+                } else {
+                    console.log(`   ${line}`);
+                }
             });
+            
+            console.log();
+            console.log(chalk.dim(`   📏 Email body: ${cleanBody.length} characters (full content displayed)`));
         } else {
             console.log(chalk.dim('   (No body content)'));
         }

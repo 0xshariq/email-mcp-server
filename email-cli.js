@@ -6,6 +6,72 @@ import chalk from 'chalk';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 
+// Function to display current user email at the start of commands
+function displayCurrentUser() {
+  try {
+    const envPath = path.join(__dirname, '.env');
+    if (fs.existsSync(envPath)) {
+      const envContent = fs.readFileSync(envPath, 'utf8');
+      const emailUserMatch = envContent.match(/^EMAIL_USER=(.+)$/m);
+      if (emailUserMatch) {
+        const userEmail = emailUserMatch[1].trim().replace(/['"]/g, '');
+        console.log(chalk.blue(`📧 Account: ${chalk.cyan(userEmail)}`));
+        console.log(); // Add spacing
+      }
+    }
+  } catch (error) {
+    // Silently ignore errors - env file might not exist yet
+  }
+}
+
+// Function to clean and format email body text
+function cleanEmailBody(body) {
+  if (!body) return '(No content)';
+  
+  let cleaned = body;
+  
+  // Remove quoted-printable encoding
+  cleaned = cleaned.replace(/=([0-9A-F]{2})/g, (match, hex) => {
+    return String.fromCharCode(parseInt(hex, 16));
+  });
+  
+  // Remove soft line breaks (= at end of line)
+  cleaned = cleaned.replace(/=\r?\n/g, '');
+  
+  // Clean up HTML tags but preserve some structure
+  cleaned = cleaned.replace(/<br\s*\/?>/gi, '\n');
+  cleaned = cleaned.replace(/<\/p>/gi, '\n\n');
+  cleaned = cleaned.replace(/<[^>]*>/g, '');
+  
+  // Decode HTML entities
+  cleaned = cleaned.replace(/&quot;/g, '"');
+  cleaned = cleaned.replace(/&amp;/g, '&');
+  cleaned = cleaned.replace(/&lt;/g, '<');
+  cleaned = cleaned.replace(/&gt;/g, '>');
+  cleaned = cleaned.replace(/&nbsp;/g, ' ');
+  cleaned = cleaned.replace(/&#39;/g, "'");
+  
+  // Clean up URLs and make them more readable
+  cleaned = cleaned.replace(/https?:\/\/[^\s]+/g, (url) => {
+    if (url.length > 60) {
+      return url.substring(0, 50) + '...';
+    }
+    return url;
+  });
+  
+  // Remove excessive whitespace but preserve paragraph breaks
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  cleaned = cleaned.replace(/[ \t]+/g, ' ');
+  cleaned = cleaned.trim();
+  
+  // Remove email headers and MIME boundaries
+  cleaned = cleaned.replace(/^--[a-zA-Z0-9_]+.*$/gm, '');
+  cleaned = cleaned.replace(/^Content-[^:]+:.*$/gm, '');
+  cleaned = cleaned.replace(/^MIME-Version:.*$/gm, '');
+  
+  return cleaned || '(No readable content)';
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -113,6 +179,11 @@ async function main() {
 
   // Handle direct command execution (when called as the command itself)
   if (commands[command]) {
+    // Display current user email (except for help commands)
+    if (!commandArgs.includes('--help') && !commandArgs.includes('-h')) {
+      displayCurrentUser();
+    }
+    
     const scriptPath = path.join(__dirname, 'bin', commands[command]);
     
     // Check if script exists

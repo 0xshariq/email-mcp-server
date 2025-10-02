@@ -105,8 +105,13 @@ export class EmailService {
                     ...this.config.imap,
                     user: this.config.imap.auth.user,
                     password: this.config.imap.auth.pass,
-                    connTimeout: 60000, // 60 second connection timeout
-                    authTimeout: 30000, // 30 second auth timeout
+                    connTimeout: 15000, // 15 second connection timeout (faster)
+                    authTimeout: 10000, // 10 second auth timeout (faster)
+                    keepalive: {
+                        interval: 10000, // 10 seconds
+                        idleInterval: 300000, // 5 minutes
+                        forceNoop: true
+                    },
                     tlsOptions: {
                         rejectUnauthorized: false // Allow self-signed certificates
                     }
@@ -174,23 +179,29 @@ export class EmailService {
     }
 
     /**
-     * Read recent emails from inbox
+     * Read recent emails from inbox (optimized for list view)
      */
-    async readRecentEmails(count: number = 10): Promise<EmailMessage[]> {
+    async readRecentEmails(count: number = 10, fullBody: boolean = false): Promise<EmailMessage[]> {
         const connection = await this.initializeIMAP();
         
         await connection.openBox('INBOX');
+        
+        // Use a more efficient search for recent messages
         const searchCriteria = ['ALL'];
         const fetchOptions = {
-            bodies: ['HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE)', 'TEXT'],
+            bodies: fullBody 
+                ? ['HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE)', 'TEXT']
+                : 'HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE)',  // Headers only for faster loading
             markSeen: this.config.imap.markSeen,
             struct: true
         };
 
         const messages = await connection.search(searchCriteria, fetchOptions);
+        
+        // Take only the most recent messages (slice from end and reverse)
         const recentMessages = messages.slice(-count).reverse();
 
-        return recentMessages.map((message: any) => this.parseEmailMessage(message));
+        return recentMessages.map((message: any) => this.parseEmailMessage(message, fullBody));
     }
 
     /**
@@ -202,13 +213,13 @@ export class EmailService {
         await connection.openBox('INBOX');
         const searchCriteria = [['UID', emailId]];
         const fetchOptions = {
-            bodies: 'TEXT',
+            bodies: ['HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE)', 'TEXT'],
             markSeen: false,
             struct: true
         };
 
         const messages = await connection.search(searchCriteria, fetchOptions);
-        return messages.length > 0 ? this.parseEmailMessage(messages[0]) : null;
+        return messages.length > 0 ? this.parseEmailMessage(messages[0], true) : null;
     }
 
     /**
@@ -376,7 +387,7 @@ export class EmailService {
         const endIndex = startIndex + limit;
         const paginatedMessages = messages.slice(startIndex, endIndex);
 
-        const emails = paginatedMessages.map((message: any) => this.parseEmailMessage(message));
+        const emails = paginatedMessages.map((message: any) => this.parseEmailMessage(message, false));
 
         return {
             emails,
@@ -543,26 +554,31 @@ export class EmailService {
     /**
      * Parse IMAP message to EmailMessage interface
      */
-    private parseEmailMessage(message: any): EmailMessage {
-        const header = message.parts.find((part: any) => part.which === 'HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE)')?.body || {};
+    private parseEmailMessage(message: any, fullBody: boolean = true): EmailMessage {
+        const header = message.parts?.find((part: any) => part.which === 'HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE)')?.body || {};
         
         // Extract body from TEXT part
         let body = '';
-        const textPart = message.parts.find((part: any) => part.which === 'TEXT');
-        if (textPart && textPart.body) {
-            body = textPart.body.toString('utf8');
-        }
-        
-        // Fallback to any available body content
-        if (!body) {
-            const bodyPart = message.parts.find((part: any) => part.body && part.which !== 'HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE)');
-            if (bodyPart && bodyPart.body) {
-                body = bodyPart.body.toString('utf8');
+        if (fullBody) {
+            const textPart = message.parts?.find((part: any) => part.which === 'TEXT');
+            if (textPart && textPart.body) {
+                body = textPart.body.toString('utf8');
             }
+            
+            // Fallback to any available body content
+            if (!body) {
+                const bodyPart = message.parts?.find((part: any) => part.body && part.which !== 'HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE)');
+                if (bodyPart && bodyPart.body) {
+                    body = bodyPart.body.toString('utf8');
+                }
+            }
+        } else {
+            // For preview mode, just provide empty body to speed up loading
+            body = '(Preview not available in list mode)';
         }
         
         return {
-            id: message.attributes.uid.toString(),
+            id: message.attributes?.uid?.toString() || 'unknown',
             from: this.parseAddressHeader(header.from?.[0] || ''),
             to: this.parseAddressHeaders(header.to || []),
             cc: this.parseAddressHeaders(header.cc || []),
@@ -570,7 +586,7 @@ export class EmailService {
             subject: header.subject?.[0] || '',
             body: body || '',
             date: new Date(header.date?.[0] || Date.now()),
-            flags: message.attributes.flags || []
+            flags: message.attributes?.flags || []
         };
     }
 

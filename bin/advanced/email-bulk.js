@@ -45,6 +45,9 @@ async function bulkSendEmails() {
     const emailService = await initializeEmailService(env);
     spinner.succeed('Email service initialized');
 
+    // Display current user info
+    console.log(chalk.dim(`📧 Using account: ${process.env.EMAIL_USER || 'Not configured'}`));
+
     const [recipientsFile, subject, body] = args;
 
     // Read recipients file

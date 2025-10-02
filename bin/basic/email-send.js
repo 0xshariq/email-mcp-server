@@ -59,6 +59,9 @@ async function main() {
         spinner.start('Initializing email service...');
         const emailService = await initializeEmailService(env);
         spinner.succeed('Email service initialized');
+
+        // Display current user info
+        console.log(chalk.dim(`📧 Using account: ${process.env.EMAIL_USER || 'Not configured'}`));
         
         const [to, subject, body, html] = args;
 

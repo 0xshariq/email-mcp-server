@@ -231,6 +231,94 @@ export function checkHelpFlag(args) {
     return args.includes('--help') || args.includes('-h') || args.includes('help');
 }
 
+// Function to clean and format email body text
+export function cleanEmailBody(body) {
+    if (!body) return '(No content)';
+    
+    let cleaned = body;
+    
+    // Remove quoted-printable encoding
+    cleaned = cleaned.replace(/=([0-9A-F]{2})/g, (match, hex) => {
+        return String.fromCharCode(parseInt(hex, 16));
+    });
+    
+    // Remove soft line breaks (= at end of line)
+    cleaned = cleaned.replace(/=\r?\n/g, '');
+    
+    // Remove CSS styles and scripts first
+    cleaned = cleaned.replace(/<style[^>]*>.*?<\/style>/gis, '');
+    cleaned = cleaned.replace(/<script[^>]*>.*?<\/script>/gis, '');
+    
+    // Clean up HTML tags but preserve some structure
+    cleaned = cleaned.replace(/<br\s*\/?>/gi, '\n');
+    cleaned = cleaned.replace(/<\/p>/gi, '\n\n');
+    cleaned = cleaned.replace(/<div[^>]*>/gi, '\n');
+    cleaned = cleaned.replace(/<\/div>/gi, '\n');
+    cleaned = cleaned.replace(/<[^>]*>/g, ' ');
+    
+    // Remove CSS media queries and styles that leaked through
+    cleaned = cleaned.replace(/@media[^{]*\{[^}]*\}/gi, '');
+    cleaned = cleaned.replace(/\*\[class\][^{]*\{[^}]*\}/gi, '');
+    cleaned = cleaned.replace(/\.[\w-]+\{[^}]*\}/gi, '');
+    cleaned = cleaned.replace(/@font-face[^{]*\{[^}]*\}/gi, '');
+    
+    // Decode HTML entities (more comprehensive)
+    cleaned = cleaned.replace(/&quot;/g, '"');
+    cleaned = cleaned.replace(/&amp;/g, '&');
+    cleaned = cleaned.replace(/&lt;/g, '<');
+    cleaned = cleaned.replace(/&gt;/g, '>');
+    cleaned = cleaned.replace(/&nbsp;/g, ' ');
+    cleaned = cleaned.replace(/&#39;/g, "'");
+    cleaned = cleaned.replace(/&#(\d+);/g, (match, dec) => {
+        return String.fromCharCode(parseInt(dec, 10));
+    });
+    
+    // Fix common Unicode/encoding issues
+    cleaned = cleaned.replace(/Ã¢â‚¬â€¹/g, '•'); // Bullet point
+    cleaned = cleaned.replace(/Â /g, ' '); // Non-breaking space issues
+    cleaned = cleaned.replace(/Â/g, ''); // Remove standalone Â
+    cleaned = cleaned.replace(/â€™/g, "'"); // Smart apostrophe
+    cleaned = cleaned.replace(/â€œ/g, '"'); // Smart quote open
+    cleaned = cleaned.replace(/â€/g, '"'); // Smart quote close
+    cleaned = cleaned.replace(/â€¢/g, '•'); // Bullet point
+    cleaned = cleaned.replace(/\u00C2\u00A0/g, ' '); // Non-breaking space
+    cleaned = cleaned.replace(/\u00A0/g, ' '); // Non-breaking space
+    
+    // Clean up URLs and make them more readable
+    cleaned = cleaned.replace(/https?:\/\/[^\s]+/g, (url) => {
+        // Clean up URL parameters for readability
+        if (url.includes('facebook.com')) {
+            return '[Facebook Link]';
+        } else if (url.length > 50) {
+            const domain = url.match(/https?:\/\/([^\/]+)/);
+            return domain ? `[Link: ${domain[1]}...]` : '[Link]';
+        }
+        return url;
+    });
+    
+    // Remove MIME boundaries and headers first
+    cleaned = cleaned.replace(/^--[a-zA-Z0-9_\-]+.*$/gm, '');
+    cleaned = cleaned.replace(/^Content-[^:]+:.*$/gm, '');
+    cleaned = cleaned.replace(/^MIME-Version:.*$/gm, '');
+    cleaned = cleaned.replace(/^charset=.*$/gm, '');
+    
+    // Clean up excessive equals signs (common in email formatting)
+    cleaned = cleaned.replace(/={10,}/g, '---');
+    
+    // Remove excessive whitespace but preserve paragraph breaks
+    cleaned = cleaned.replace(/\n{4,}/g, '\n\n\n');
+    cleaned = cleaned.replace(/[ \t]{2,}/g, ' ');
+    cleaned = cleaned.replace(/^\s*[\r\n]/gm, '\n'); // Remove empty lines
+    cleaned = cleaned.trim();
+    
+    // Format bullet points and lists better
+    cleaned = cleaned.replace(/^[\s]*[•·]\s*/gm, '  • ');
+    cleaned = cleaned.replace(/^[\s]*\*\s*/gm, '  • ');
+    cleaned = cleaned.replace(/^[\s]*-\s*/gm, '  • ');
+    
+    return cleaned || '(No readable content)';
+}
+
 // Validate and resolve file paths for attachments
 export function validateAndResolveFilePath(filePath) {
     if (!filePath) {
