@@ -42,8 +42,8 @@ async function main() {
         spinner.succeed('Email service initialized');
 
         const getSpinner = createSpinner(`Getting email ${emailId}...`).start();
-        const email = await emailService.getEmail(emailId);
-        getSpinner.stop();
+        const email = await emailService.getEmailById(emailId);
+        getSpinner.succeed('Email retrieved');
 
         if (!email) {
             console.log(chalk.red('❌ Email not found with ID:'), chalk.yellow(emailId));
