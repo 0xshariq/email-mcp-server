@@ -244,6 +244,66 @@ export class EmailService {
     }
 
     /**
+     * Delete multiple emails in batch (more efficient than individual deletes)
+     */
+    async deleteEmails(emailIds: string[]): Promise<{ success: string[], failed: Array<{ id: string, error: string }> }> {
+        const results = {
+            success: [] as string[],
+            failed: [] as Array<{ id: string, error: string }>
+        };
+
+        if (emailIds.length === 0) {
+            return results;
+        }
+
+        try {
+            const connection = await this.initializeIMAP();
+            await connection.openBox('INBOX');
+            
+            // Add deleted flag to all emails at once
+            for (const emailId of emailIds) {
+                try {
+                    await new Promise((resolve, reject) => {
+                        connection.imap.addFlags(emailId, '\\Deleted', (err: any) => {
+                            if (err) reject(err);
+                            else resolve(null);
+                        });
+                    });
+                    results.success.push(emailId);
+                } catch (error) {
+                    results.failed.push({ 
+                        id: emailId, 
+                        error: error instanceof Error ? error.message : 'Unknown error' 
+                    });
+                }
+            }
+            
+            // Single expunge operation for all deleted emails (more efficient)
+            if (results.success.length > 0) {
+                await new Promise((resolve, reject) => {
+                    connection.imap.expunge((err: any) => {
+                        if (err) reject(err);
+                        else resolve(null);
+                    });
+                });
+            }
+            
+        } catch (error) {
+            // If connection fails, mark all as failed
+            emailIds.forEach(id => {
+                if (!results.success.includes(id) && !results.failed.find(f => f.id === id)) {
+                    results.failed.push({ 
+                        id, 
+                        error: error instanceof Error ? error.message : 'Connection error' 
+                    });
+                }
+            });
+        }
+
+        return results;
+    }
+
+    /**
      * Mark email as read/unread
      */
     async markEmailAsRead(emailId: string, read: boolean = true): Promise<boolean> {
