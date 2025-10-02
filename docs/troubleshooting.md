@@ -57,12 +57,19 @@ sudo ln -sf $(pwd)/email-cli.js /usr/local/bin/cadd
 # ... (repeat for other commands)
 ```
 
-**Option 3: Use Installation Script**
+**Option 3: Use Setup Script (Automated)**
 ```bash
-# Run the provided installation script
-./install-cli.sh
+# Use the provided setup-symlinks.sh script for automatic installation
+chmod +x setup-symlinks.sh
+./setup-symlinks.sh
 
-# Or manually install with npm link
+# This script automatically creates symlinks for all 40+ CLI commands
+# Including all basic, advanced, and contact management commands
+```
+
+**Option 4: NPM Link (Development)**
+```bash
+# For local development and testing
 npm link
 ```
 
@@ -108,6 +115,53 @@ npm run build
 # Test individual CLI files
 ./bin/basic/email-send.js --help
 ./bin/contacts/contact-add.js --help
+```
+
+### ✅ Using setup-symlinks.sh Script
+
+**Recommended Setup Method:** The project includes an automated script to create all CLI command symlinks.
+
+**Features:**
+- Creates symlinks for all 40+ commands automatically
+- Includes both full names and short aliases
+- Sets up proper permissions and paths
+- Works on Linux and macOS
+
+**Usage:**
+```bash
+# Navigate to project directory
+cd /path/to/email-mcp-server
+
+# Make script executable
+chmod +x setup-symlinks.sh
+
+# Run the setup script (requires sudo for /usr/local/bin access)
+./setup-symlinks.sh
+
+# Verify installation
+email-send --help
+contact-add --help
+```
+
+**Script Contents:** The script creates symlinks for:
+- **Basic Commands:** email-send/esend, email-read/eread, email-get/eget, email-delete/edelete, email-mark-read/emarkread, email-list/elist
+- **Advanced Commands:** email-attach/eattach, email-search/esearch, email-bulk/ebulk, email-draft/edraft, email-schedule/eschedule, email-reply/ereply, email-forward/eforward, email-stats/estats
+- **Contact Commands:** contact-add/cadd, contact-list/clist, contact-search/csearch, contact-update/cupdate, contact-delete/cdelete, contact-group/cgroup
+
+**Troubleshooting setup-symlinks.sh:**
+```bash
+# If permission denied
+sudo chmod +x setup-symlinks.sh
+
+# If commands still not found after running script
+echo $PATH | grep /usr/local/bin
+
+# If symlinks are broken, check target file
+ls -la /usr/local/bin/email-send
+# Should point to: /path/to/email-mcp-server/email-cli.js
+
+# Manual cleanup if needed
+sudo rm /usr/local/bin/email-* /usr/local/bin/e* /usr/local/bin/contact-* /usr/local/bin/c*
 ```
 
 ### ❌ `Cannot find module` Errors

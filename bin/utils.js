@@ -176,7 +176,9 @@ export function showHelp(title, usage, description, examples, options = []) {
     if (options && options.length > 0) {
         console.log(chalk.bold('ARGUMENTS:'));
         options.forEach(option => {
-            console.log(chalk.green(`  ${option.name.padEnd(20)} ${option.description}`));
+            if (option && option.name && option.description) {
+                console.log(chalk.green(`  ${option.name.padEnd(20)} ${option.description}`));
+            }
         });
         console.log();
     }

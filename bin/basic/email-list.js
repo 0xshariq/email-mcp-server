@@ -162,7 +162,7 @@ function listCommands() {
   
   // Quick Examples
   console.log(chalk.bold.cyan('📝 QUICK START EXAMPLES\n'));
-  console.log(chalk.yellow('   email-send "user@example.com" "Hello" "Test message"'));
+  console.log(chalk.yellow('   email-send user@example.com "Hello" "Test message"'));
   console.log(chalk.yellow('   email-bulk recipients.txt "Newsletter" "Monthly update"'));
   console.log(chalk.yellow('   contact-add "John Doe" "john@example.com" "+1-555-0123" "work"'));
   console.log(chalk.yellow('   email-attach "user@example.com" "Report" "See attached" "./report.pdf"'));

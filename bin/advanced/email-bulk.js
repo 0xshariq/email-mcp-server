@@ -74,13 +74,15 @@ async function bulkSendEmails() {
 
     console.log(chalk.green(`✅ Bulk email operation completed!`));
     console.log(chalk.cyan(`📊 Total recipients: ${recipients.length}`));
-    console.log(chalk.green(`✅ Successfully sent: ${results.successful}`));
+    console.log(chalk.green(`✅ Successfully sent: ${results.sent}`));
     console.log(chalk.red(`❌ Failed to send: ${results.failed}`));
     
-    if (results.errors && results.errors.length > 0) {
-      console.log(chalk.bold('\n❌ Errors:'));
-      results.errors.forEach(error => {
-        console.log(chalk.red(`  ${error.email}: ${error.error}`));
+    // Show failed sends if any
+    const failedSends = results.results.filter(r => !r.success);
+    if (failedSends.length > 0) {
+      console.log(chalk.bold('\n❌ Failed Recipients:'));
+      failedSends.forEach(failed => {
+        console.log(chalk.red(`  ${failed.recipient}: ${failed.error}`));
       });
     }
     
