@@ -182,7 +182,7 @@ export class EmailService {
         await connection.openBox('INBOX');
         const searchCriteria = ['ALL'];
         const fetchOptions = {
-            bodies: 'HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE)',
+            bodies: ['HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE)', 'TEXT'],
             markSeen: this.config.imap.markSeen,
             struct: true
         };
@@ -202,7 +202,7 @@ export class EmailService {
         await connection.openBox('INBOX');
         const searchCriteria = [['UID', emailId]];
         const fetchOptions = {
-            bodies: '',
+            bodies: 'TEXT',
             markSeen: false,
             struct: true
         };
@@ -522,7 +522,22 @@ export class EmailService {
      * Parse IMAP message to EmailMessage interface
      */
     private parseEmailMessage(message: any): EmailMessage {
-        const header = message.parts[0]?.body || {};
+        const header = message.parts.find((part: any) => part.which === 'HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE)')?.body || {};
+        
+        // Extract body from TEXT part
+        let body = '';
+        const textPart = message.parts.find((part: any) => part.which === 'TEXT');
+        if (textPart && textPart.body) {
+            body = textPart.body.toString('utf8');
+        }
+        
+        // Fallback to any available body content
+        if (!body) {
+            const bodyPart = message.parts.find((part: any) => part.body && part.which !== 'HEADER.FIELDS (FROM TO CC BCC SUBJECT DATE)');
+            if (bodyPart && bodyPart.body) {
+                body = bodyPart.body.toString('utf8');
+            }
+        }
         
         return {
             id: message.attributes.uid.toString(),
@@ -531,7 +546,7 @@ export class EmailService {
             cc: this.parseAddressHeaders(header.cc || []),
             bcc: this.parseAddressHeaders(header.bcc || []),
             subject: header.subject?.[0] || '',
-            body: message.parts[1]?.body || '',
+            body: body || '',
             date: new Date(header.date?.[0] || Date.now()),
             flags: message.attributes.flags || []
         };

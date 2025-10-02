@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { loadEnv, validateEnv, initializeEmailService, Spinner } from '../utils.js';
+import { loadEnv, validateEnv, initializeEmailService, Spinner, checkHelpFlag, printHelp } from '../utils.js';
 import chalk from 'chalk';
 import fs from 'fs';
 import path from 'path';

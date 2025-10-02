@@ -69,7 +69,17 @@ async function main() {
         console.log('');
         console.log(chalk.blue('📄 Email Body:'));
         console.log(chalk.gray('   ' + '─'.repeat(50)));
-        console.log(email.body);
+        
+        if (email.body && email.body.trim()) {
+            // Split body into lines and add proper indentation
+            const bodyLines = email.body.trim().split('\n');
+            bodyLines.forEach(line => {
+                console.log(`   ${line}`);
+            });
+        } else {
+            console.log(chalk.dim('   (No body content)'));
+        }
+        
         console.log(chalk.gray('   ' + '─'.repeat(50)));
 
         if (email.attachments && email.attachments.length > 0) {

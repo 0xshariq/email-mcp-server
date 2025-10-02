@@ -158,10 +158,9 @@ export function handleSuccess(result, message) {
 
 // Print styled help message
 export function printHelp(commandName, usage, description, examples, options = []) {
-    console.log(chalk.blue.bold(`\n📧 ${commandName.toUpperCase()}`));
-    console.log(chalk.gray('━'.repeat(50)));
+    console.log(chalk.bold.cyan(`\n📧 ${commandName}\n`));
     
-    console.log(chalk.bold('\nUSAGE:'));
+    console.log(chalk.bold('USAGE:'));
     console.log(chalk.cyan(`  ${usage}`));
     
     console.log(chalk.bold('\nDESCRIPTION:'));
@@ -178,9 +177,6 @@ export function printHelp(commandName, usage, description, examples, options = [
     examples.forEach(example => {
         console.log(chalk.green(`  ${example}`));
     });
-    
-    console.log(chalk.gray('\n━'.repeat(50)));
-    console.log(chalk.dim('💡 Make sure your .env file is configured with email settings'));
 }
 
 // Spinner for loading states

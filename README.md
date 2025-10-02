@@ -112,10 +112,8 @@ cadd "Name" "email@example.com" "work"  # Add contact
 # Advanced operations
 esearch --from "boss@company.com" --unread  # Search emails
 eattach "user@example.com" "Report" "See attached" "/path/file.pdf" 
-```
 
 For complete CLI usage documentation, see **[CLI Usage Guide](docs/CLI_USAGE.md)**
-```
 
 **� [Complete CLI Documentation →](docs/CLI_USAGE.md)**
 
@@ -172,7 +170,6 @@ cadd --help
 
 #### Basic Email Tools
 
-```
 
 For complete MCP server tool documentation and CLI usage, see **[CLI Usage Guide](docs/CLI_USAGE.md)**
 
