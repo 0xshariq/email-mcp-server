@@ -69,7 +69,10 @@
   "scripts": {
     "build": "tsc -p .",
     "start": "node dist/index.js",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "install-cli": "node install.js",
+    "postinstall": "npm run build",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/inspector": "^0.16.1",

@@ -1,53 +1,85 @@
 #!/bin/bash
 
-# Create all CLI command symlinks properly
-PROJECT_DIR="/home/sharique/desktop/shariq-mcp-servers/email-mcp-server"
+# Cross-platform CLI installation script for Email MCP Server
+# This script creates symlinks on Unix-like systems (Linux/macOS/WSL)
+
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLI_FILE="$PROJECT_DIR/email-cli.js"
 
-# Basic Email Commands
-sudo ln -sf "$CLI_FILE" /usr/local/bin/email-send
-sudo ln -sf "$CLI_FILE" /usr/local/bin/esend
-sudo ln -sf "$CLI_FILE" /usr/local/bin/email-read  
-sudo ln -sf "$CLI_FILE" /usr/local/bin/eread
-sudo ln -sf "$CLI_FILE" /usr/local/bin/email-get
-sudo ln -sf "$CLI_FILE" /usr/local/bin/eget
-sudo ln -sf "$CLI_FILE" /usr/local/bin/email-delete
-sudo ln -sf "$CLI_FILE" /usr/local/bin/edelete
-sudo ln -sf "$CLI_FILE" /usr/local/bin/email-mark-read
-sudo ln -sf "$CLI_FILE" /usr/local/bin/emarkread
-sudo ln -sf "$CLI_FILE" /usr/local/bin/email-list
-sudo ln -sf "$CLI_FILE" /usr/local/bin/elist
+# Check if Node.js is available
+if ! command -v node &> /dev/null; then
+    echo "❌ Node.js is not installed or not in PATH"
+    echo "📦 Please install Node.js first: https://nodejs.org/"
+    exit 1
+fi
 
-# Advanced Email Commands
-sudo ln -sf "$CLI_FILE" /usr/local/bin/email-search
-sudo ln -sf "$CLI_FILE" /usr/local/bin/esearch
-sudo ln -sf "$CLI_FILE" /usr/local/bin/email-attach
-sudo ln -sf "$CLI_FILE" /usr/local/bin/eattach
-sudo ln -sf "$CLI_FILE" /usr/local/bin/email-forward
-sudo ln -sf "$CLI_FILE" /usr/local/bin/eforward
-sudo ln -sf "$CLI_FILE" /usr/local/bin/email-reply
-sudo ln -sf "$CLI_FILE" /usr/local/bin/ereply
-sudo ln -sf "$CLI_FILE" /usr/local/bin/email-stats
-sudo ln -sf "$CLI_FILE" /usr/local/bin/estats
-sudo ln -sf "$CLI_FILE" /usr/local/bin/email-draft
-sudo ln -sf "$CLI_FILE" /usr/local/bin/edraft
-sudo ln -sf "$CLI_FILE" /usr/local/bin/email-schedule
-sudo ln -sf "$CLI_FILE" /usr/local/bin/eschedule
-sudo ln -sf "$CLI_FILE" /usr/local/bin/email-bulk
-sudo ln -sf "$CLI_FILE" /usr/local/bin/ebulk
+# Check if CLI file exists
+if [ ! -f "$CLI_FILE" ]; then
+    echo "❌ CLI file not found: $CLI_FILE"
+    echo "📁 Make sure you're running this script from the project directory"
+    exit 1
+fi
 
-# Contact Commands
-sudo ln -sf "$CLI_FILE" /usr/local/bin/contact-add
-sudo ln -sf "$CLI_FILE" /usr/local/bin/cadd
-sudo ln -sf "$CLI_FILE" /usr/local/bin/contact-list
-sudo ln -sf "$CLI_FILE" /usr/local/bin/clist
-sudo ln -sf "$CLI_FILE" /usr/local/bin/contact-search
-sudo ln -sf "$CLI_FILE" /usr/local/bin/csearch
-sudo ln -sf "$CLI_FILE" /usr/local/bin/contact-group
-sudo ln -sf "$CLI_FILE" /usr/local/bin/cgroup
-sudo ln -sf "$CLI_FILE" /usr/local/bin/contact-update
-sudo ln -sf "$CLI_FILE" /usr/local/bin/cupdate
-sudo ln -sf "$CLI_FILE" /usr/local/bin/contact-delete
-sudo ln -sf "$CLI_FILE" /usr/local/bin/cdelete
+# Make CLI file executable
+chmod +x "$CLI_FILE"
 
+echo "🧹 Removing existing symlinks..."
+
+# Define all command names
+COMMANDS=(
+    # Basic Email Commands
+    "email-send" "esend"
+    "email-read" "eread"
+    "email-get" "eget"
+    "email-delete" "edelete"
+    "email-mark-read" "emarkread"
+    "email-list" "elist"
+    # Advanced Email Commands
+    "email-search" "esearch"
+    "email-attach" "eattach"
+    "email-forward" "eforward"
+    "email-reply" "ereply"
+    "email-stats" "estats"
+    "email-draft" "edraft"
+    "email-schedule" "eschedule"
+    "email-bulk" "ebulk"
+    # Contact Commands
+    "contact-add" "cadd"
+    "contact-list" "clist"
+    "contact-search" "csearch"
+    "contact-group" "cgroup"
+    "contact-update" "cupdate"
+    "contact-delete" "cdelete"
+)
+
+# Remove existing symlinks
+for cmd in "${COMMANDS[@]}"; do
+    if [ -L "/usr/local/bin/$cmd" ] || [ -f "/usr/local/bin/$cmd" ]; then
+        echo "  Removing: /usr/local/bin/$cmd"
+        sudo rm -f "/usr/local/bin/$cmd"
+    fi
+done
+
+echo "🔗 Creating new symlinks..."
+
+# Create new symlinks
+for cmd in "${COMMANDS[@]}"; do
+    echo "  Creating: /usr/local/bin/$cmd -> $CLI_FILE"
+    sudo ln -sf "$CLI_FILE" "/usr/local/bin/$cmd"
+done
+
+echo ""
 echo "✅ All CLI commands installed successfully!"
+echo ""
+echo "📋 Available commands:"
+echo "   Basic: email-send, email-read, email-get, email-delete, email-mark-read, email-list"
+echo "   Advanced: email-search, email-attach, email-forward, email-reply, email-stats"
+echo "   Contacts: contact-add, contact-list, contact-search, contact-update, contact-delete"
+echo ""
+echo "🚀 Usage examples:"
+echo "   email-send recipient@example.com 'Subject' 'Message'"
+echo "   email-read 10"
+echo "   email-get 1234"
+echo ""
+echo "💡 For cross-platform usage, install globally with npm:"
+echo "   npm install -g ."
