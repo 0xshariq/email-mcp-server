@@ -2,6 +2,29 @@
 
 Complete guide for using the Email MCP Server CLI tools. The CLI provides comprehensive email management capabilities through both short and long command aliases.
 
+## 🚨 Quick Fix for Windows "Unknown command" Errors
+
+If you're seeing errors like "Unknown command: email-send" on Windows:
+
+**Immediate Solution (Works Right Away):**
+```powershell
+# Use npx to run commands without PATH issues:
+npx @0xshariq/email-mcp-server email-cli --version
+npx @0xshariq/email-mcp-server email-send "test@example.com" "Subject" "Body"
+```
+
+**Permanent Solution (Requires Administrator PowerShell + Restart):**
+```powershell
+# 1. Right-click PowerShell → "Run as Administrator"
+# 2. Add npm path to system PATH:
+$npmPath = npm config get prefix
+$currentPath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
+[Environment]::SetEnvironmentVariable("PATH", $currentPath + ";" + $npmPath, "Machine")
+
+# 3. Restart your computer
+# 4. Test: email-cli --version
+```
+
 ## 📦 Installation Guide
 
 ### 🌍 Global Installation (Recommended)
@@ -677,17 +700,58 @@ echo $env:SMTP_HOST     # Should show: smtp.gmail.com
 # ... (set all other variables)
 
 # 3. Fix PATH if commands not found:
-# In Administrator PowerShell:
+# In Administrator PowerShell, run ALL these commands:
 $npmPath = npm config get prefix
-[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";" + $npmPath, "Machine")
+$npmBinPath = "$npmPath"
+[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";" + $npmBinPath, "Machine")
 
-# 4. Test in regular PowerShell (close admin window first):
+# 4. IMPORTANT: Close ALL PowerShell windows and restart your computer
+# This ensures the Machine-level PATH changes take effect
+
+# 5. After restart, test in regular PowerShell:
 email-cli --version          # Should show version + your email
 email-cli                    # View recent emails
+where.exe email-send         # Should show the command location
 
-# 5. Backup option - use npx if PATH issues persist:
+# 6. If STILL not working after restart, try this complete PATH fix:
+# In Administrator PowerShell:
+$currentPath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
+$npmPrefix = npm config get prefix
+$newPath = $currentPath + ";" + $npmPrefix
+[Environment]::SetEnvironmentVariable("PATH", $newPath, "Machine")
+
+# 7. Verify PATH was updated:
+[Environment]::GetEnvironmentVariable("PATH", "Machine") | Select-String "npm"
+
+# 8. Backup option - use npx if PATH issues persist:
 npx @0xshariq/email-mcp-server email-cli --version
 npx @0xshariq/email-mcp-server email-send "test@example.com" "Test" "Hello"
+```
+
+**🚨 Windows PATH Troubleshooting:**
+
+If you're seeing "Unknown command" errors like in your screenshot:
+
+```powershell
+# Step 1: Check if package is installed
+npm list -g @0xshariq/email-mcp-server
+
+# Step 2: Find npm global directory
+npm config get prefix
+# Result should be: C:\Users\[username]\AppData\Roaming\npm
+
+# Step 3: Check if commands exist in that directory
+dir "C:\Users\khans\AppData\Roaming\npm" | findstr email
+
+# Step 4: In Administrator PowerShell, add the EXACT path:
+$exactPath = "C:\Users\khans\AppData\Roaming\npm"
+$currentPath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
+[Environment]::SetEnvironmentVariable("PATH", $currentPath + ";" + $exactPath, "Machine")
+
+# Step 5: Restart computer (required for Machine-level PATH changes)
+
+# Step 6: Test after restart:
+email-cli --version
 ```
 
 **🎯 Administrator Setup Benefits:**

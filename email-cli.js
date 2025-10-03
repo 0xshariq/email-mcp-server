@@ -198,6 +198,9 @@ async function main() {
     } else if (commandArgs.includes('--help') || commandArgs.includes('-h')) {
       showUsage();
       return;
+    } else if (commandArgs[0] === 'update') {
+      await handleUpdate();
+      return;
     } else if (commandArgs.length === 0) {
       // Default behavior: show recent emails (like list command)
       displayCurrentUser();
@@ -358,10 +361,12 @@ function showUsage() {
   console.log(chalk.bold.blue('Utility Commands:'));
   console.log(chalk.cyan('  list                       Show recent emails'));
   console.log(chalk.cyan('  email-cli                  Show recent emails (main command)'));
+  console.log(chalk.cyan('  email-cli update           Update CLI to latest version'));
   console.log();
   
   console.log(chalk.bold.yellow('Usage:'));
   console.log(chalk.blue('  email-cli') + chalk.gray('                   Show recent emails'));
+  console.log(chalk.blue('  email-cli update') + chalk.gray('           Update to latest version'));
   console.log(chalk.blue('  email-cli --version') + chalk.gray('        Show version information'));
   console.log(chalk.blue('  email-cli --help') + chalk.gray('           Show this help message'));
   console.log(chalk.blue('  <command> --help') + chalk.gray('           Show help for specific command'));
@@ -381,6 +386,196 @@ function showUsage() {
     console.log(chalk.cyan('  refreshenv') + chalk.gray('                          # Refresh PATH (Chocolatey users)'));
     console.log(chalk.cyan('  npm config get prefix') + chalk.gray('              # Check npm global path'));
     console.log();
+  }
+}
+
+async function handleUpdate() {
+  console.log(chalk.bold.cyan('🔄 Email MCP CLI Updater'));
+  console.log(chalk.dim('═'.repeat(40)));
+  console.log();
+  
+  try {
+    // Get current version from package.json
+    const packagePath = path.join(__dirname, 'package.json');
+    const packageData = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+    const currentVersion = packageData.version;
+    const packageName = packageData.name;
+    
+    console.log(chalk.blue('📦 Current version:'), chalk.yellow(currentVersion));
+    console.log(chalk.blue('📍 Package name:'), chalk.cyan(packageName));
+    console.log();
+    
+    // Check if globally installed
+    console.log(chalk.gray('🔍 Checking installation status...'));
+    
+    try {
+      const npmListOutput = execSync(`npm list -g ${packageName} --depth=0`, { 
+        encoding: 'utf8',
+        stdio: 'pipe'
+      });
+      
+      if (npmListOutput.includes(packageName)) {
+        console.log(chalk.green('✅ Package is globally installed'));
+      } else {
+        console.log(chalk.yellow('⚠️  Package might not be globally installed'));
+      }
+    } catch (listError) {
+      console.log(chalk.yellow('⚠️  Could not verify global installation status'));
+    }
+    
+    console.log();
+    console.log(chalk.gray('� Fetching latest version from npm...'));
+    
+    // Fetch latest version from npm
+    let latestVersion;
+    try {
+      const npmViewOutput = execSync(`npm view ${packageName} version`, {
+        encoding: 'utf8',
+        stdio: 'pipe'
+      }).trim();
+      latestVersion = npmViewOutput;
+      console.log(chalk.blue('📦 Latest version:'), chalk.yellow(latestVersion));
+    } catch (viewError) {
+      console.log(chalk.red('❌ Could not fetch latest version from npm'));
+      console.log(chalk.yellow('💡 Proceeding with update anyway...'));
+      latestVersion = null;
+    }
+    
+    // Check for version differences and potential breaking changes
+    if (latestVersion && latestVersion !== currentVersion) {
+      console.log();
+      const currentMajor = parseInt(currentVersion.split('.')[0]);
+      const latestMajor = parseInt(latestVersion.split('.')[0]);
+      
+      if (latestMajor > currentMajor) {
+        // Major version change - show warning
+        console.log(chalk.red.bold('⚠️  MAJOR VERSION UPDATE DETECTED!'));
+        console.log(chalk.yellow('━'.repeat(50)));
+        console.log(chalk.red(`   Current: v${currentVersion} → Latest: v${latestVersion}`));
+        console.log(chalk.yellow('   Major version updates may contain breaking changes!'));
+        console.log();
+        console.log(chalk.bold.yellow('🚨 Potential breaking changes may include:'));
+        console.log(chalk.cyan('   • Command syntax changes'));
+        console.log(chalk.cyan('   • Environment variable requirements'));
+        console.log(chalk.cyan('   • Configuration file format changes'));
+        console.log(chalk.cyan('   • Removed or renamed commands'));
+        console.log();
+        console.log(chalk.bold.blue('📚 It\'s recommended to check the changelog at:'));
+        console.log(chalk.cyan(`   https://github.com/0xshariq/email-mcp-server/releases`));
+        console.log();
+        
+        // Ask for user confirmation
+        const readline = await import('readline');
+        const rl = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout
+        });
+        
+        const answer = await new Promise((resolve) => {
+          rl.question(chalk.yellow('❓ Do you want to continue with the major update? (y/N): '), resolve);
+        });
+        rl.close();
+        
+        if (answer.toLowerCase() !== 'y' && answer.toLowerCase() !== 'yes') {
+          console.log(chalk.blue('ℹ️  Update cancelled by user'));
+          console.log(chalk.gray('💡 You can update manually when ready:'));
+          console.log(chalk.cyan(`   npm install -g ${packageName}@latest`));
+          return;
+        }
+        
+        console.log(chalk.green('✅ Proceeding with major version update...'));
+        
+      } else if (latestMajor === currentMajor) {
+        const currentMinor = parseInt(currentVersion.split('.')[1]);
+        const latestMinor = parseInt(latestVersion.split('.')[1]);
+        
+        if (latestMinor > currentMinor) {
+          console.log(chalk.blue('ℹ️  Minor version update available'));
+          console.log(chalk.gray('   Minor updates typically include new features and improvements'));
+        } else {
+          console.log(chalk.blue('ℹ️  Patch version update available'));
+          console.log(chalk.gray('   Patch updates typically include bug fixes and improvements'));
+        }
+      }
+      
+    } else if (latestVersion === currentVersion) {
+      console.log(chalk.green('✅ You already have the latest version!'));
+      console.log(chalk.gray('💡 No update needed'));
+      return;
+    }
+    
+    console.log();
+    console.log(chalk.gray('�🚀 Updating to latest version...'));
+    console.log();
+    
+    // Update the package
+    const updateCommand = `npm install -g ${packageName}@latest`;
+    console.log(chalk.blue('Running:'), chalk.cyan(updateCommand));
+    console.log();
+    
+    const updateProcess = spawn('npm', ['install', '-g', `${packageName}@latest`], {
+      stdio: 'inherit',
+      shell: process.platform === 'win32'
+    });
+    
+    updateProcess.on('close', (code) => {
+      console.log();
+      if (code === 0) {
+        console.log(chalk.green.bold('✅ Update completed successfully!'));
+        console.log();
+        console.log(chalk.blue('🔍 Verifying installation...'));
+        
+        try {
+          // Get the new version
+          const newPackageData = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+          const newVersion = newPackageData.version;
+          
+          console.log(chalk.blue('📦 Updated version:'), chalk.yellow(newVersion));
+          
+          if (newVersion !== currentVersion) {
+            console.log(chalk.green('🎉 Successfully updated from'), chalk.yellow(currentVersion), chalk.green('to'), chalk.yellow(newVersion));
+          } else {
+            console.log(chalk.blue('ℹ️  You already have the latest version'));
+          }
+          
+        } catch (err) {
+          console.log(chalk.yellow('⚠️  Could not verify new version'));
+        }
+        
+        console.log();
+        console.log(chalk.gray('💡 Try running:'), chalk.cyan('email-cli --version'), chalk.gray('to confirm the update'));
+        
+      } else {
+        console.log(chalk.red.bold('❌ Update failed with exit code:'), code);
+        console.log();
+        console.log(chalk.yellow('💡 Troubleshooting tips:'));
+        console.log(chalk.cyan('  • Try running as Administrator/sudo'));
+        console.log(chalk.cyan('  • Check your internet connection'));
+        console.log(chalk.cyan('  • Verify npm is properly installed'));
+        
+        if (process.platform === 'win32') {
+          console.log(chalk.cyan('  • On Windows: Run PowerShell as Administrator'));
+          console.log(chalk.cyan('  • Add npm to PATH: [Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";" + (npm config get prefix), "Machine")'));
+          console.log(chalk.cyan('  • Restart computer after PATH changes'));
+        } else {
+          console.log(chalk.cyan('  • On Unix: Try with sudo npm install -g'));
+        }
+      }
+    });
+    
+    updateProcess.on('error', (error) => {
+      console.log();
+      console.error(chalk.red.bold('❌ Update error:'), error.message);
+      console.log();
+      console.log(chalk.yellow('💡 Manual update instructions:'));
+      console.log(chalk.cyan(`  npm install -g ${packageName}@latest`));
+    });
+    
+  } catch (error) {
+    console.error(chalk.red.bold('❌ Update failed:'), error.message);
+    console.log();
+    console.log(chalk.yellow('💡 Try manual update:'));
+    console.log(chalk.cyan(`  npm install -g @0xshariq/email-mcp-server@latest`));
   }
 }
 
