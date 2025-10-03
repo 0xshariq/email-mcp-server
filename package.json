@@ -70,8 +70,9 @@
     "build": "tsc -p .",
     "start": "node dist/index.js",
     "clean": "rm -rf dist",
+    "setup": "node setup-cli.js",
     "install-cli": "node install.js",
-    "postinstall": "npm run build",
+    "postinstall": "npm run build && node postinstall.js",
     "prepack": "npm run build"
   },
   "dependencies": {

@@ -15,18 +15,32 @@ A dual-purpose tool that works as:
 **👥 Contact Management**: Add, update, search, organize contacts by groups  
 **🌐 Cross-Platform**: Works identically on all platforms and terminals
 
-## 🚀 Quick Start
+## 🚀 Zero-Configuration Installation
 
-**Universal Installation (All Platforms):**
+**🎯 One Command - Complete Setup:**
 ```bash
 npm install -g @0xshariq/email-mcp-server
+# OR
+pnpm install -g @0xshariq/email-mcp-server
 ```
 
-**Alternative Methods:**
+**✨ What Happens Automatically:**
+- ✅ Detects your platform (Windows/macOS/Linux/WSL)
+- ✅ Creates 40+ command shortcuts globally
+- ✅ Configures system PATH automatically
+- ✅ Tests installation and provides setup guide
+- ✅ **Ready to use immediately - no manual steps!**
+
+**🎬 Getting Started:**
 ```bash
-# Windows: Run install.bat as Administrator
-# Linux/macOS/WSL: ./setup-symlinks.sh
-# Development: npm link
+# Set up your email (one-time only):
+email-setup
+
+# Start sending emails:
+email-send "user@example.com" "Hello" "Your message"
+
+# Explore all commands:
+email-cli --help
 ```
 
 📖 **[Complete Installation Guide](docs/INSTALL.md)**

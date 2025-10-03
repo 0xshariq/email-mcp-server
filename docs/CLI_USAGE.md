@@ -60,7 +60,50 @@ $currentPath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
 
 Install the Email MCP Server globally to use commands from anywhere on your system:
 
-#### **Using npm:**
+#### **🤖 Fully Automated Installation**
+
+The Email MCP Server **automatically detects** installation type and runs appropriate setup:
+
+##### **🌐 Global Installation (System-wide CLI)**
+```bash
+# Automatic setup - detects -g flag and runs full setup:
+npm install -g @0xshariq/email-mcp-server
+pnpm install -g @0xshariq/email-mcp-server
+
+# What happens automatically:
+# ✅ Detects global installation (-g flag)
+# ✅ Runs platform-specific setup script  
+# ✅ Configures PATH for your OS
+# ✅ Creates all command symlinks
+# ✅ Tests installation
+# ✅ Provides setup guide
+```
+
+##### **📁 Local Installation (Development)**
+```bash
+# Automatic local setup - detects no -g flag:
+npm install @0xshariq/email-mcp-server
+git clone https://github.com/0xshariq/email-mcp-server.git && cd email-mcp-server && npm install
+
+# What happens automatically:
+# ✅ Detects local installation (no -g flag)
+# ✅ Creates .env configuration file
+# ✅ Provides local development instructions
+# ✅ Shows how to run commands locally
+```
+
+**✨ Smart Detection Features:**
+- 🔍 **Installation Type Detection** - Automatic -g flag detection
+- �️ **Platform Detection** - Windows, macOS, Linux (including WSL)  
+- 📦 **Package Manager Detection** - npm, pnpm, yarn
+- 🔗 **Symlink Creation** - All 40+ commands available (global only)
+- 🛣️ **PATH Configuration** - Automatic PATH setup (global only)
+- � **Environment Setup** - .env file creation (local only)
+- � **Installation Testing** - Verifies everything works
+
+#### **📦 Manual Installation**
+
+##### **Using npm:**
 ```bash
 # Install globally via npm
 npm install -g @0xshariq/email-mcp-server
@@ -70,7 +113,7 @@ email-cli --version
 esend --help
 ```
 
-#### **Using pnpm:**
+##### **Using pnpm:**
 ```bash
 # Install globally via pnpm
 pnpm install -g @0xshariq/email-mcp-server
@@ -81,6 +124,27 @@ pnpm exec esend --help
 
 # Or if PATH is configured:
 email-cli --version
+```
+
+#### **🖥️ Platform-Specific Installers**
+
+##### **Windows (PowerShell as Administrator):**
+```powershell
+# For pnpm users:
+curl -o install-pnpm-windows.ps1 https://raw.githubusercontent.com/0xshariq/email-mcp-server/main/install-pnpm-windows.ps1
+.\install-pnpm-windows.ps1
+
+# For npm users:
+curl -o install-windows.ps1 https://raw.githubusercontent.com/0xshariq/email-mcp-server/main/install-windows.ps1  
+.\install-windows.ps1
+```
+
+##### **Unix/Linux/macOS:**
+```bash
+# Download and run setup script
+curl -o setup-symlinks.sh https://raw.githubusercontent.com/0xshariq/email-mcp-server/main/setup-symlinks.sh
+chmod +x setup-symlinks.sh
+./setup-symlinks.sh
 ```
 
 **✅ After global installation, all 40+ commands work directly:**
@@ -98,6 +162,52 @@ csearch "gmail.com"
 
 # All commands available system-wide!
 ```
+
+### 🔄 **Installation Types Explained**
+
+#### **🌐 Global Installation (`-g` flag)**
+```bash
+npm install -g @0xshariq/email-mcp-server  # Global
+pnpm install -g @0xshariq/email-mcp-server # Global
+```
+
+**✅ What you get:**
+- **System-wide CLI access** - Commands work from any directory
+- **All 40+ command aliases** - `email-send`, `esend`, `email-read`, etc.
+- **Automatic symlinks** - No manual configuration needed
+- **PATH setup** - Automatic platform-specific configuration
+- **Environment variables** - System-level configuration (Windows) or shell profile (Unix)
+
+**🎯 Perfect for:** End users who want CLI tools available everywhere
+
+#### **📁 Local Installation (no `-g` flag)**  
+```bash
+npm install @0xshariq/email-mcp-server      # Local
+git clone <repo> && npm install             # Development
+```
+
+**✅ What you get:**
+- **Project-specific installation** - Commands via `node` prefix
+- **`.env` file configuration** - Automatic creation from template
+- **Development setup** - Full source code access
+- **Local commands** - `node email-cli.js`, `node bin/basic/email-send.js`
+- **Build tools** - TypeScript compilation, development scripts
+
+**🎯 Perfect for:** Developers, custom integrations, project-specific usage
+
+### 🔗 **Automatic Features**
+
+**Symlinks & PATH (Global Only):**
+- ✅ **No manual symlink creation needed**
+- ✅ **All 40+ command aliases work immediately**  
+- ✅ **Cross-platform compatibility**
+- ✅ **Automatic PATH configuration**
+
+**Environment Setup:**
+- 🌐 **Global:** System environment variables or shell profile
+- 📁 **Local:** `.env` file configuration (created automatically)
+
+The installation **automatically detects** which type you're doing and configures accordingly!
 
 ### 🏠 Local Installation
 
@@ -1501,9 +1611,60 @@ This Email MCP Server CLI provides **40+ commands** with comprehensive email and
 - **`email-send`**: Limited to 3 recipients (suggests `email-bulk` for more)
 - **`email-attach`**: Supports unlimited comma-separated attachments
 
+## 🚀 **Zero-Configuration Installation**
+
+The Email MCP Server now features **completely automatic setup**:
+
+### **🌐 For End Users (Global Installation):**
+```bash
+# Single command - everything automatic:
+npm install -g @0xshariq/email-mcp-server
+# OR
+pnpm install -g @0xshariq/email-mcp-server
+
+# What happens automatically:
+# ✅ Detects -g flag (global installation)
+# ✅ Runs platform-specific setup (Windows/macOS/Linux)
+# ✅ Creates all 40+ command symlinks
+# ✅ Configures system PATH
+# ✅ Tests installation
+# ✅ Provides setup instructions
+# ✅ Ready to use immediately!
+
+# Just set your email credentials and start using:
+email-send "user@example.com" "Subject" "Message"
+```
+
+### **📁 For Developers (Local Installation):**
+```bash
+# Local installation - automatic dev setup:
+npm install @0xshariq/email-mcp-server
+# OR
+git clone https://github.com/0xshariq/email-mcp-server && npm install
+
+# What happens automatically:
+# ✅ Detects local installation (no -g flag)  
+# ✅ Creates .env configuration file
+# ✅ Provides development instructions
+# ✅ Sets up local command usage
+
+# Use locally with:
+node email-cli.js --version
+node bin/basic/email-send.js "user@example.com" "Subject" "Message"
+```
+
+### **🎯 No Manual Steps Required:**
+- ❌ **No symlink creation** - Automatic
+- ❌ **No PATH configuration** - Automatic  
+- ❌ **No platform detection** - Automatic
+- ❌ **No setup scripts to run** - Runs automatically
+- ✅ **Just install and use!**
+
+---
+
 Start with `email-cli --help` and explore individual command help with `--help` flag. Happy emailing! 📧
 
-This CLI provides professional-grade email management capabilities suitable for individual users, small teams, and automated workflows.
+This CLI provides professional-grade email management capabilities with **zero-configuration setup** suitable for individual users, small teams, and automated workflows.
 
 ---
 
