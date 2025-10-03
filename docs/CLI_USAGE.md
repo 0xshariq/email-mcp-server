@@ -184,6 +184,11 @@ setx PATH "%PATH%;%AppData%\npm"
 
 ## 🔧 Environment Setup
 
+Email MCP Server can be used in two ways with different configuration approaches:
+
+### 🏠 **Local Development (Easy - .env file)**
+### 🌍 **Global Installation (Complex - System Environment Variables)**
+
 > **⚠️ IMPORTANT PLATFORM NOTE:**  
 > Environment variable commands are **platform-specific**:
 > - **Linux/macOS/WSL:** Use `export VAR="value"`
@@ -192,24 +197,34 @@ setx PATH "%PATH%;%AppData%\npm"
 > 
 > **Do NOT use `export` commands on Windows** - they will not work!
 
-Email MCP Server supports multiple ways to configure your email settings:
+---
 
-### 📁 Method 1: .env File (Recommended for Local Development)
+## 🏠 **Local Development Setup (EASY)**
 
-**Create and configure .env file:**
+Perfect for development, testing, or project-specific use. Uses `.env` file - works on all platforms!
 
+### **Step 1: Clone/Download Project**
+```bash
+git clone https://github.com/0xshariq/email-mcp-server.git
+cd email-mcp-server
+npm install
+npm run build
+```
+
+### **Step 2: Create .env File**
 ```bash
 # Linux/macOS
 cp .env.example .env
 
-# Windows Command Prompt
+# Windows Command Prompt  
 copy .env.example .env
 
 # Windows PowerShell
 Copy-Item .env.example .env
 ```
 
-**Configure email settings in .env:**
+### **Step 3: Configure .env File**
+Edit the `.env` file with your email settings:
 ```env
 # Gmail Configuration (most common)
 SMTP_HOST=smtp.gmail.com
@@ -222,15 +237,74 @@ IMAP_HOST=imap.gmail.com
 IMAP_PORT=993
 IMAP_TLS=true
 IMAP_MARK_SEEN=false
-
-# Other providers supported (Outlook, Yahoo, custom SMTP/IMAP)
 ```
 
-### 🌍 Method 2: Environment Variables (Cross-Platform Setup)
+### **Step 4: Use Commands**
+```bash
+# All commands work with node prefix
+node email-cli.js --version
+node email-cli.js                    # List emails
+node email-cli.js email-send "user@example.com" "Subject" "Body"
+node email-cli.js email-stats
 
-⚠️ **Important Note:** Environment variable commands are **NOT universal across platforms**. Each operating system uses different syntax. Choose the correct commands for your platform:
+# Create shortcuts (optional)
+# Linux/macOS: alias esend="node email-cli.js email-send"
+# Windows: Create .bat files or use doskey
+```
 
-Environment variable setup differs by platform. Choose your platform:
+**✅ Local Development Benefits:**
+- ✅ Easy setup - just edit one file
+- ✅ Works on all platforms identically  
+- ✅ Project-specific configuration
+- ✅ No system-wide changes needed
+- ✅ Perfect for development and testing
+
+---
+
+## 🌍 **Global Installation Setup (COMPLEX)**
+
+For system-wide access to commands. Requires setting system environment variables.
+
+### **Step 1: Install Globally**
+```bash
+npm install -g @0xshariq/email-mcp-server
+```
+
+### **Step 2: Fix Windows PATH Issues (Windows Only)**
+Windows often has PATH issues with global npm packages:
+
+**🔥 Administrator Method (BEST FIX):**
+```powershell
+# 1. Right-click PowerShell → "Run as Administrator"
+# 2. Check npm global directory
+npm config get prefix
+
+# 3. Add to system PATH (Machine-level)
+$npmPath = npm config get prefix  
+[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";" + $npmPath, "Machine")
+
+# 4. Close admin PowerShell, test in regular PowerShell
+email-cli --version
+```
+
+**Alternative Methods:**
+```powershell
+# Quick test - check if commands are available
+email-cli --version
+
+# Workaround - use npx (always works)
+npx @0xshariq/email-mcp-server email-cli --version
+
+# User-level PATH fix (less reliable)
+$npmPath = npm config get prefix
+[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";" + $npmPath, "User")
+```
+
+### **Step 3: Configure System Environment Variables**
+
+⚠️ **Complex Part:** Environment variable setup differs by platform and requires system-level changes.
+
+**Choose your platform:**
 
 #### **🐧 Linux/macOS/WSL (Bash/Zsh)**
 ```bash
@@ -243,6 +317,10 @@ export EMAIL_PASS="your-app-password"
 export IMAP_HOST="imap.gmail.com"
 export IMAP_PORT="993"
 export IMAP_TLS="true"
+export SMTP_REJECT_UNAUTHORIZED=false
+export IMAP_REJECT_UNAUTHORIZED=false
+export IMAP_CONN_TIMEOUT=60000
+export IMAP_AUTH_TIMEOUT=30000
 
 # Permanent setup (add to ~/.bashrc or ~/.zshrc)
 echo 'export SMTP_HOST="smtp.gmail.com"' >> ~/.bashrc
@@ -253,12 +331,54 @@ echo 'export EMAIL_PASS="your-app-password"' >> ~/.bashrc
 echo 'export IMAP_HOST="imap.gmail.com"' >> ~/.bashrc
 echo 'export IMAP_PORT="993"' >> ~/.bashrc
 echo 'export IMAP_TLS="true"' >> ~/.bashrc
+echo 'export SMTP_REJECT_UNAUTHORIZED="false"' >> ~/.bashrc
+echo 'export IMAP_REJECT_UNAUTHORIZED="false"' >> ~/.bashrc
+echo 'export IMAP_CONN_TIMEOUT="60000"' >> ~/.bashrc
+echo 'export IMAP_AUTH_TIMEOUT="60000"' >> ~/.bashrc
 
 # Reload shell configuration
 source ~/.bashrc  # or source ~/.zshrc
 ```
 
 #### **🪟 Windows PowerShell**
+
+**🔥 Method 1: Administrator PowerShell (RECOMMENDED)**
+
+Right-click PowerShell → "Run as Administrator", then:
+
+```powershell
+# Permanent setup (Machine-level) - BEST FOR GLOBAL CLI
+[Environment]::SetEnvironmentVariable("SMTP_HOST", "smtp.gmail.com", "Machine")
+[Environment]::SetEnvironmentVariable("SMTP_PORT", "587", "Machine")
+[Environment]::SetEnvironmentVariable("SMTP_SECURE", "false", "Machine")
+[Environment]::SetEnvironmentVariable("EMAIL_USER", "your-email@gmail.com", "Machine")
+[Environment]::SetEnvironmentVariable("EMAIL_PASS", "your-app-password", "Machine")
+[Environment]::SetEnvironmentVariable("IMAP_HOST", "imap.gmail.com", "Machine")
+[Environment]::SetEnvironmentVariable("IMAP_PORT", "993", "Machine")
+[Environment]::SetEnvironmentVariable("IMAP_TLS", "true", "Machine")
+[Environment]::SetEnvironmentVariable("IMAP_TLS", "true", "Machine")
+[Environment]::SetEnvironmentVariable("SMTP_REJECT_UNAUTHORIZED", "false", "Machine")
+[Environment]::SetEnvironmentVariable("IMAP_REJECT_UNAUTHORIZED", "false", "Machine")
+[Environment]::SetEnvironmentVariable("IMAP_CONN_TIMEOUT", "60000", "Machine")
+[Environment]::SetEnvironmentVariable("IMAP_AUTH_TIMEOUT", "60000", "Machine")
+
+# Also add npm global path to system PATH (if needed)
+$npmPath = npm config get prefix
+[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";" + $npmPath, "Machine")
+
+# IMPORTANT: Close PowerShell and open NEW PowerShell window (not as admin)
+# Test with: $env:EMAIL_USER (should show your email)
+```
+
+**✅ Administrator Benefits:**
+- ✅ **System-wide access** - Works for ALL users and applications
+- ✅ **More persistent** - Survives user profile changes  
+- ✅ **Perfect for global CLI** - Ideal for npm global packages
+- ✅ **Professional setup** - Production-ready configuration
+- ✅ **No permission issues** - Bypasses user-level restrictions
+
+**🔧 Method 2: Regular PowerShell (User-level)**
+
 ```powershell
 # Temporary (current session only)
 $env:SMTP_HOST = "smtp.gmail.com"
@@ -269,8 +389,12 @@ $env:EMAIL_PASS = "your-app-password"
 $env:IMAP_HOST = "imap.gmail.com"
 $env:IMAP_PORT = "993"
 $env:IMAP_TLS = "true"
+$env:SMTP_REJECT_UNAUTHORIZED=false
+$env:IMAP_REJECT_UNAUTHORIZED=false
+$env:IMAP_CONN_TIMEOUT=60000
+$env:IMAP_AUTH_TIMEOUT=30000
 
-# Permanent setup (User-level)
+# Permanent setup (User-level only)
 [Environment]::SetEnvironmentVariable("SMTP_HOST", "smtp.gmail.com", "User")
 [Environment]::SetEnvironmentVariable("SMTP_PORT", "587", "User")
 [Environment]::SetEnvironmentVariable("SMTP_SECURE", "false", "User")
@@ -279,9 +403,22 @@ $env:IMAP_TLS = "true"
 [Environment]::SetEnvironmentVariable("IMAP_HOST", "imap.gmail.com", "User")
 [Environment]::SetEnvironmentVariable("IMAP_PORT", "993", "User")
 [Environment]::SetEnvironmentVariable("IMAP_TLS", "true", "User")
+[Environment]::SetEnvironmentVariable("SMTP_REJECT_UNAUTHORIZED", "false", "Machine")
+[Environment]::SetEnvironmentVariable("IMAP_REJECT_UNAUTHORIZED", "false", "Machine")
+[Environment]::SetEnvironmentVariable("IMAP_CONN_TIMEOUT", "60000", "Machine")
+[Environment]::SetEnvironmentVariable("IMAP_AUTH_TIMEOUT", "60000", "Machine")
 
-# Restart PowerShell to load permanent variables
+# IMPORTANT: Restart PowerShell after setting permanent variables
 ```
+
+**🎯 Which PowerShell Method to Choose?**
+
+| Method | Admin Required | Scope | Best For |
+|--------|----------------|-------|----------|
+| **Administrator** | Yes | Machine-wide | ✅ **Global CLI usage (RECOMMENDED)** |
+| **Regular User** | No | User-only | Local development, testing |
+
+**💡 Tip:** Use **Administrator method** for the email CLI - it's the proper way to set up global CLI tools!
 
 #### **🖥️ Windows Command Prompt**
 ```cmd
@@ -316,6 +453,51 @@ setx IMAP_TLS "true"
 | **Windows PowerShell** | `$env:VAR = "value"` | `[Environment]::SetEnvironmentVariable()` | Yes |
 | **Windows CMD** | `set VAR=value` | `setx VAR "value"` | Yes |
 
+### **Step 4: Use Global Commands**
+```bash
+# After global setup, commands work from anywhere
+email-cli --version
+email-send "user@example.com" "Subject" "Body"
+esend "user@example.com" "Subject" "Body"
+email-stats
+```
+
+**🚨 Global Installation Challenges:**
+- ❌ Platform-specific environment variable syntax
+- ❌ System-wide configuration required
+- ❌ Windows PATH issues with npm
+- ❌ Requires admin privileges on some systems
+- ❌ Environment persists system-wide
+- ❌ Harder to manage multiple email accounts
+
+---
+
+## 🤔 **Which Method Should You Choose?**
+
+| Factor | Local Development (.env) | Global Installation |
+|--------|--------------------------|-------------------|
+| **Ease of Setup** | ✅ Very Easy | ❌ Complex |
+| **Platform Compatibility** | ✅ Universal | ❌ Platform-specific |
+| **Admin Rights Required** | ✅ No | ❌ Often yes |
+| **Multiple Accounts** | ✅ Easy (different .env files) | ❌ Difficult |
+| **System Impact** | ✅ None | ❌ System-wide changes |
+| **Command Usage** | `node email-cli.js command` | `command` directly |
+| **Recommended For** | Development, Testing, Projects | Daily use, Production |
+
+### **💡 Recommendations**
+
+**🎯 For Most Users:** Start with **Local Development** method
+- Easier setup process  
+- No system configuration headaches
+- Perfect for trying out the CLI
+- Can always switch to global later
+
+**🎯 For Power Users:** Use **Global Installation** if you:
+- Use email CLI daily across multiple projects
+- Don't mind complex environment setup
+- Want shortest possible commands
+- Are comfortable with system administration
+
 **⚠️ Critical Platform Warning:** 
 - The `export` command **ONLY works on Unix-like systems** (Linux/macOS/WSL)
 - **Windows users MUST use** `$env:` (PowerShell) or `set`/`setx` (CMD)
@@ -323,24 +505,76 @@ setx IMAP_TLS "true"
 
 ### 🚨 **Common Platform Issues & Solutions**
 
-**Problem:** `'export' is not recognized as an internal or external command` (Windows)
+#### **Windows-Specific Issues:**
+
+**Problem 1:** `The system cannot find the path specified` or `'email-send' is not recognized`
+
+**Solution A: Administrator PowerShell Fix (RECOMMENDED)**
+```powershell
+# 1. Right-click PowerShell → "Run as Administrator"
+# 2. Check if package is installed globally
+npm list -g @0xshariq/email-mcp-server
+
+# 3. Add npm global path to system PATH (Machine-level)
+$npmPath = npm config get prefix
+[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";" + $npmPath, "Machine")
+
+# 4. Close admin PowerShell, open regular PowerShell
+# 5. Test: email-cli --version
+```
+
+**Solution B: Alternative Fixes**
+```powershell
+# Quick workaround - use npx
+npx @0xshariq/email-mcp-server email-send "test@example.com" "Subject" "Body"
+
+# Check current PATH
+npm config get prefix
+echo $env:PATH
+
+# Reinstall if needed
+npm uninstall -g @0xshariq/email-mcp-server
+npm install -g @0xshariq/email-mcp-server
+
+# User-level PATH fix (less reliable)
+$npmPath = npm config get prefix
+[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";" + $npmPath, "User")
+```
+
+**Problem 2:** `'export' is not recognized as an internal or external command`
 ```
 Solution: You're using Unix commands on Windows. Use Windows-specific commands:
 - PowerShell: $env:SMTP_HOST = "smtp.gmail.com" 
 - CMD: set SMTP_HOST=smtp.gmail.com
 ```
 
-**Problem:** Environment variables not persisting after restart
+**Problem 3:** Environment variables not persisting after restart
 ```
 Solution: Use permanent setup commands:
 - Linux/macOS: Add export commands to ~/.bashrc or ~/.zshrc
-- Windows PowerShell: Use [Environment]::SetEnvironmentVariable()
+- Windows PowerShell: Use [Environment]::SetEnvironmentVariable() with "User" or "Machine"
 - Windows CMD: Use setx command
+- ALWAYS restart terminal after setting permanent variables
 ```
 
-**Problem:** Commands work in terminal but not in CLI
+**Problem 4:** Commands work in one terminal but not another
 ```
-Solution: Restart your terminal/PowerShell after setting permanent variables
+Solution: Restart ALL terminal windows after setting permanent variables
+- Close all PowerShell/CMD windows
+- Open new terminal
+- Test with: echo $env:EMAIL_USER (PowerShell) or echo %EMAIL_USER% (CMD)
+```
+
+#### **Cross-Platform Issues:**
+
+**Problem:** Environment variables not detected by CLI
+```bash
+# Test if variables are set:
+# Linux/macOS: echo $EMAIL_USER
+# Windows PS: echo $env:EMAIL_USER  
+# Windows CMD: echo %EMAIL_USER%
+
+# If not set, use temporary setup first, then permanent
 ```
 
 ### 📧 Gmail App Password Setup:
@@ -372,20 +606,42 @@ email-cli --version
 
 ### � Quick Start
 
-Once environment is configured, test the CLI:
+## **⚡ 5-Minute Local Setup (EASY - Recommended)**
 
 ```bash
-# View recent emails (main command)
-email-cli
+# 1. Get the code (local development)
+git clone https://github.com/0xshariq/email-mcp-server.git
+cd email-mcp-server
+npm install && npm run build
 
-# Check version
-email-cli --version
+# 2. Create .env file
+cp .env.example .env  # Linux/macOS
+# OR copy .env.example .env  # Windows
 
-# Send an email
-esend "recipient@example.com" "Test Subject" "Hello from Email MCP CLI!"
+# 3. Edit .env with your email settings
+# EMAIL_USER=your-email@gmail.com
+# EMAIL_PASS=your-app-password
 
-# View email statistics
-email-stats
+# 4. Test it works
+node email-cli.js --version        # Check version + config
+node email-cli.js                  # List emails
+node email-cli.js email-send "test@example.com" "Hello" "Test"
+```
+
+## **🌍 Global Setup (COMPLEX - Advanced Users)**
+
+```bash
+# 1. Install globally
+npm install -g @0xshariq/email-mcp-server
+
+# 2. Set system environment variables (see platform-specific instructions above)
+
+# 3. Fix Windows PATH issues (if on Windows):
+npx @0xshariq/email-mcp-server email-cli --version  # Workaround
+
+# 4. Test global commands
+email-cli --version               # Should work globally
+email-send "test@example.com" "Hello" "Test message"
 ```
 
 **Complete Setup Examples by Platform:**
@@ -407,22 +663,38 @@ email-cli                    # View recent emails
 email-stats                  # Check account info
 ```
 
-**Windows PowerShell:**
+**Windows PowerShell (Administrator Setup):**
 ```powershell
-# 1. Set Gmail environment variables (temporary)
-$env:SMTP_HOST = "smtp.gmail.com"
-$env:SMTP_PORT = "587"
-$env:SMTP_SECURE = "false"
-$env:EMAIL_USER = "your-email@gmail.com"
-$env:EMAIL_PASS = "your-app-password"
-$env:IMAP_HOST = "imap.gmail.com"
-$env:IMAP_PORT = "993"
-$env:IMAP_TLS = "true"
+# 1. Verify environment variables are set (Machine-level)
+# Open regular PowerShell (not admin) and check:
+echo $env:EMAIL_USER    # Should show: your-email@gmail.com
+echo $env:SMTP_HOST     # Should show: smtp.gmail.com
 
-# 2. Test the setup
+# 2. If variables not showing, set them as Administrator:
+# Right-click PowerShell → "Run as Administrator", then:
+[Environment]::SetEnvironmentVariable("EMAIL_USER", "your-email@gmail.com", "Machine")
+[Environment]::SetEnvironmentVariable("SMTP_HOST", "smtp.gmail.com", "Machine")
+# ... (set all other variables)
+
+# 3. Fix PATH if commands not found:
+# In Administrator PowerShell:
+$npmPath = npm config get prefix
+[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";" + $npmPath, "Machine")
+
+# 4. Test in regular PowerShell (close admin window first):
+email-cli --version          # Should show version + your email
 email-cli                    # View recent emails
-email-stats                  # Check account info
+
+# 5. Backup option - use npx if PATH issues persist:
+npx @0xshariq/email-mcp-server email-cli --version
+npx @0xshariq/email-mcp-server email-send "test@example.com" "Test" "Hello"
 ```
+
+**🎯 Administrator Setup Benefits:**
+- ✅ **Permanent solution** - No repeated configuration needed
+- ✅ **System-wide access** - Works from any directory/user
+- ✅ **Professional setup** - Industry standard approach  
+- ✅ **No conflicts** - Avoids user-level permission issues
 
 **Windows Command Prompt:**
 ```cmd

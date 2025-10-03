@@ -9,6 +9,14 @@ import fs from 'fs';
 // Function to display current user email at the start of commands
 function displayCurrentUser() {
   try {
+    // Try to get email from environment variables first
+    if (process.env.EMAIL_USER) {
+      console.log(chalk.blue(`📧 Account: ${chalk.cyan(process.env.EMAIL_USER)}`));
+      console.log(); // Add spacing
+      return;
+    }
+    
+    // Fallback to .env file
     const envPath = path.join(__dirname, '.env');
     if (fs.existsSync(envPath)) {
       const envContent = fs.readFileSync(envPath, 'utf8');
@@ -203,13 +211,15 @@ async function main() {
       
       // Execute the list script
       process.chdir(__dirname);
-      const childProcess = spawn('node', [scriptPath], {
+      const nodeExecutable = process.platform === 'win32' ? 'node.exe' : 'node';
+      const childProcess = spawn(nodeExecutable, [scriptPath], {
         stdio: 'inherit',
         cwd: __dirname,
         env: { 
           ...process.env,
           NODE_PATH: __dirname
-        }
+        },
+        shell: process.platform === 'win32' // Use shell on Windows for better compatibility
       });
 
       childProcess.on('close', (code) => {
@@ -240,6 +250,9 @@ async function main() {
     // Check if script exists
     if (!fs.existsSync(scriptPath)) {
       console.error(chalk.red.bold(`❌ Script not found: ${scriptPath}`));
+      console.error(chalk.gray(`Looked for: ${scriptPath}`));
+      console.error(chalk.gray(`Current directory: ${process.cwd()}`));
+      console.error(chalk.gray(`CLI directory: ${__dirname}`));
       console.log(chalk.yellow('Available commands:'));
       Object.keys(commands).forEach(cmd => {
         console.log(chalk.cyan(`  ${cmd}`));
@@ -251,13 +264,15 @@ async function main() {
     process.chdir(__dirname);
     
     // Execute the script with proper environment
-    const childProcess = spawn('node', [scriptPath, ...commandArgs], {
+    const nodeExecutable = process.platform === 'win32' ? 'node.exe' : 'node';
+    const childProcess = spawn(nodeExecutable, [scriptPath, ...commandArgs], {
       stdio: 'inherit',
       cwd: __dirname,
       env: { 
         ...process.env,
         NODE_PATH: __dirname
-      }
+      },
+      shell: process.platform === 'win32' // Use shell on Windows for better compatibility
     });
 
     childProcess.on('close', (code) => {
@@ -284,12 +299,23 @@ function showVersion() {
     console.log(chalk.bold.cyan('📧 Email MCP Server CLI'));
     console.log(chalk.gray(`Version: ${chalk.white(packageJson.version)}`));
     console.log(chalk.gray(`Package: ${chalk.white(packageJson.name)}`));
+    console.log(chalk.gray(`Platform: ${chalk.white(process.platform)}`));
+    console.log(chalk.gray(`Node: ${chalk.white(process.version)}`));
+    console.log(chalk.gray(`CLI Path: ${chalk.white(__dirname)}`));
     console.log();
     console.log(chalk.dim('A powerful command-line interface for email operations'));
     console.log(chalk.dim('Use --help to see available commands'));
+    
+    // Show environment setup status
+    if (process.env.EMAIL_USER) {
+      console.log(chalk.green(`✅ Environment configured for: ${process.env.EMAIL_USER}`));
+    } else {
+      console.log(chalk.yellow('⚠️  Environment not configured - set EMAIL_USER and other variables'));
+    }
   } catch (error) {
     console.log(chalk.bold.cyan('📧 Email MCP Server CLI'));
     console.log(chalk.red('Version information not available'));
+    console.log(chalk.red(`Error: ${error.message}`));
   }
 }
 
@@ -346,6 +372,16 @@ function showUsage() {
   console.log(chalk.gray('2. Run: ') + chalk.blue('email-cli --version') + chalk.gray(' to view version'));
   console.log(chalk.gray('3. Use specific commands like: ') + chalk.blue('esend "user@example.com" "Subject" "Body"'));
   console.log();
+  
+  if (process.platform === 'win32') {
+    console.log(chalk.bold.red('🪟 Windows Troubleshooting:'));
+    console.log(chalk.yellow('If commands show "path not found":'));
+    console.log(chalk.cyan('  npm list -g @0xshariq/email-mcp-server') + chalk.gray('  # Check installation'));
+    console.log(chalk.cyan('  where email-send') + chalk.gray('                      # Find command location'));
+    console.log(chalk.cyan('  refreshenv') + chalk.gray('                          # Refresh PATH (Chocolatey users)'));
+    console.log(chalk.cyan('  npm config get prefix') + chalk.gray('              # Check npm global path'));
+    console.log();
+  }
 }
 
 // Always run main
