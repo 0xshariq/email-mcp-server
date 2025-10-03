@@ -6,14 +6,30 @@ Complete guide for using the Email MCP Server CLI tools. The CLI provides compre
 
 If you're seeing errors like "Unknown command: email-send" on Windows:
 
-**Immediate Solution (Works Right Away):**
+### **Immediate Solutions (Work Right Away)**
+
+#### **For npm Users:**
 ```powershell
 # Use npx to run commands without PATH issues:
 npx @0xshariq/email-mcp-server email-cli --version
+npx @0xshariq/email-mcp-server email-cli update
 npx @0xshariq/email-mcp-server email-send "test@example.com" "Subject" "Body"
 ```
 
-**Permanent Solution (Requires Administrator PowerShell + Restart):**
+#### **For pnpm Users:**
+```powershell
+# Use pnpm exec to run commands:
+pnpm exec email-cli --version
+pnpm exec email-cli update
+pnpm exec email-send "test@example.com" "Subject" "Body"
+
+# Or use npx as alternative:
+npx @0xshariq/email-mcp-server email-cli --version
+```
+
+### **Permanent Solutions (Administrator PowerShell + Restart)**
+
+#### **For npm Users:**
 ```powershell
 # 1. Right-click PowerShell → "Run as Administrator"
 # 2. Add npm path to system PATH:
@@ -25,12 +41,26 @@ $currentPath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
 # 4. Test: email-cli --version
 ```
 
+#### **For pnpm Users:**
+```powershell
+# 1. Right-click PowerShell → "Run as Administrator"
+# 2. Get pnpm global directory and add to PATH:
+$pnpmRoot = pnpm root -g
+$pnpmBinPath = Split-Path $pnpmRoot -Parent
+$currentPath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
+[Environment]::SetEnvironmentVariable("PATH", $currentPath + ";" + $pnpmBinPath, "Machine")
+
+# 3. Restart your computer
+# 4. Test: email-cli --version
+```
+
 ## 📦 Installation Guide
 
 ### 🌍 Global Installation (Recommended)
 
 Install the Email MCP Server globally to use commands from anywhere on your system:
 
+#### **Using npm:**
 ```bash
 # Install globally via npm
 npm install -g @0xshariq/email-mcp-server
@@ -38,6 +68,19 @@ npm install -g @0xshariq/email-mcp-server
 # Verify installation
 email-cli --version
 esend --help
+```
+
+#### **Using pnpm:**
+```bash
+# Install globally via pnpm
+pnpm install -g @0xshariq/email-mcp-server
+
+# Verify installation
+pnpm exec email-cli --version
+pnpm exec esend --help
+
+# Or if PATH is configured:
+email-cli --version
 ```
 
 **✅ After global installation, all 40+ commands work directly:**
@@ -1461,3 +1504,538 @@ This Email MCP Server CLI provides **40+ commands** with comprehensive email and
 Start with `email-cli --help` and explore individual command help with `--help` flag. Happy emailing! 📧
 
 This CLI provides professional-grade email management capabilities suitable for individual users, small teams, and automated workflows.
+
+---
+
+# 🛠️ Comprehensive Troubleshooting Guide
+
+## 📋 Table of Contents
+- [Windows Issues](#windows-issues)
+- [macOS/Linux Issues](#macoslinux-issues)
+- [Package Manager Issues](#package-manager-issues)
+- [Environment Variables Issues](#environment-variables-issues)
+- [Email Authentication Issues](#email-authentication-issues)
+- [Network & Connection Issues](#network--connection-issues)
+- [General CLI Issues](#general-cli-issues)
+
+---
+
+## 🪟 Windows Issues
+
+### **Problem: "Unknown command" or "Command not found" Errors**
+
+#### **🔍 Symptoms:**
+- `email-send` shows "Unknown command"
+- `where email-send` returns nothing
+- Commands work with `npx` but not directly
+
+#### **📊 Diagnosis:**
+Check installation status:
+```powershell
+# Check if package is installed
+npm list -g @0xshariq/email-mcp-server
+pnpm list -g @0xshariq/email-mcp-server
+
+# Check PATH
+echo $env:PATH | Select-String "npm"
+echo $env:PATH | Select-String "pnpm"
+```
+
+#### **✅ Solutions:**
+
+##### **Solution 1: npm Users - Permanent PATH Fix**
+```powershell
+# 1. Open PowerShell as Administrator
+# Right-click PowerShell → "Run as Administrator"
+
+# 2. Install package globally (if not installed)
+npm install -g @0xshariq/email-mcp-server
+
+# 3. Add npm path to system PATH
+$npmPath = npm config get prefix
+$currentPath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
+[Environment]::SetEnvironmentVariable("PATH", $currentPath + ";" + $npmPath, "Machine")
+
+# 4. Verify PATH update
+[Environment]::GetEnvironmentVariable("PATH", "Machine") | Select-String "npm"
+
+# 5. RESTART COMPUTER (Required!)
+
+# 6. Test after restart
+email-cli --version
+where.exe email-send
+```
+
+##### **Solution 2: pnpm Users - Permanent PATH Fix**
+```powershell
+# 1. Open PowerShell as Administrator
+
+# 2. Install package globally (if not installed)
+pnpm install -g @0xshariq/email-mcp-server
+
+# 3. Get pnpm paths and add to system PATH
+$pnpmRoot = pnpm root -g
+$pnpmBinPath = Split-Path $pnpmRoot -Parent
+$currentPath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
+[Environment]::SetEnvironmentVariable("PATH", $currentPath + ";" + $pnpmBinPath, "Machine")
+
+# Also add common pnpm paths
+$appDataPnpm = "$env:APPDATA\npm"
+$localAppDataPnpm = "$env:LOCALAPPDATA\pnpm"
+if (Test-Path $appDataPnpm) {
+    $currentPath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
+    [Environment]::SetEnvironmentVariable("PATH", $currentPath + ";" + $appDataPnpm, "Machine")
+}
+
+# 4. RESTART COMPUTER (Required!)
+
+# 5. Test after restart
+email-cli --version
+pnpm exec email-cli --version
+```
+
+##### **Solution 3: Immediate Workarounds (No Restart Required)**
+```powershell
+# Option A - Use pnpm exec (for pnpm users)
+pnpm exec email-cli --version
+pnpm exec email-send "test@example.com" "Subject" "Body"
+
+# Option B - Use npx (works for both npm and pnpm)
+npx @0xshariq/email-mcp-server email-cli --version
+npx @0xshariq/email-mcp-server email-send "test@example.com" "Subject" "Body"
+
+# Option C - Create batch files (Administrator required)
+$npmPath = npm config get prefix  # or use pnpm root -g for pnpm
+@"
+@echo off
+node "$npmPath\node_modules\@0xshariq\email-mcp-server\email-cli.js" %*
+"@ | Out-File -FilePath "$env:WINDIR\email-cli.bat" -Encoding ASCII
+```
+
+### **Problem: Environment Variables Not Persisting**
+
+#### **🔍 Symptoms:**
+- Variables work in current session but disappear after restart
+- `echo $env:EMAIL_USER` shows empty after restart
+
+#### **✅ Solution: Machine-Level Environment Variables**
+```powershell
+# 1. Open PowerShell as Administrator
+
+# 2. Set Machine-level environment variables (permanent)
+[Environment]::SetEnvironmentVariable("EMAIL_USER", "your-email@gmail.com", "Machine")
+[Environment]::SetEnvironmentVariable("EMAIL_PASS", "your-app-password", "Machine")
+[Environment]::SetEnvironmentVariable("SMTP_HOST", "smtp.gmail.com", "Machine")
+[Environment]::SetEnvironmentVariable("SMTP_PORT", "587", "Machine")
+[Environment]::SetEnvironmentVariable("SMTP_SECURE", "false", "Machine")
+[Environment]::SetEnvironmentVariable("IMAP_HOST", "imap.gmail.com", "Machine")
+[Environment]::SetEnvironmentVariable("IMAP_PORT", "993", "Machine")
+[Environment]::SetEnvironmentVariable("IMAP_TLS", "true", "Machine")
+
+# 3. Verify variables are set
+[Environment]::GetEnvironmentVariable("EMAIL_USER", "Machine")
+
+# 4. RESTART COMPUTER or close all PowerShell windows
+
+# 5. Test in new PowerShell
+echo $env:EMAIL_USER
+```
+
+---
+
+## 🍎 macOS/Linux Issues
+
+### **Problem: Permission Denied on Global Installation**
+
+#### **🔍 Symptoms:**
+- `npm install -g` fails with permission errors
+- `EACCES: permission denied` errors
+
+#### **✅ Solutions:**
+
+##### **Solution 1: Use sudo (Quick Fix)**
+```bash
+sudo npm install -g @0xshariq/email-mcp-server
+```
+
+##### **Solution 2: Fix npm Permissions (Recommended)**
+```bash
+# 1. Create a directory for global packages
+mkdir ~/.npm-global
+
+# 2. Configure npm to use the new directory
+npm config set prefix '~/.npm-global'
+
+# 3. Add to PATH in your shell profile
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+# or for zsh:
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.zshrc
+
+# 4. Reload shell
+source ~/.bashrc  # or source ~/.zshrc
+
+# 5. Install package
+npm install -g @0xshariq/email-mcp-server
+```
+
+### **Problem: Command Not Found on macOS/Linux**
+
+#### **✅ Solution: Check and Fix PATH**
+```bash
+# 1. Check if package is installed
+npm list -g @0xshariq/email-mcp-server
+
+# 2. Find npm global directory
+npm config get prefix
+
+# 3. Check if directory is in PATH
+echo $PATH | grep $(npm config get prefix)
+
+# 4. Add to PATH if missing
+echo 'export PATH=$(npm config get prefix)/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+
+# 5. Test
+email-cli --version
+```
+
+---
+
+## 📦 Package Manager Issues
+
+### **Problem: Package Not Found or Outdated**
+
+#### **✅ Solutions:**
+
+##### **For npm:**
+```bash
+# Update npm itself
+npm install -g npm@latest
+
+# Clear npm cache
+npm cache clean --force
+
+# Install/update package
+npm uninstall -g @0xshariq/email-mcp-server
+npm install -g @0xshariq/email-mcp-server@latest
+
+# Verify
+npm list -g @0xshariq/email-mcp-server
+```
+
+##### **For pnpm:**
+```bash
+# Update pnpm
+npm install -g pnpm@latest
+
+# Clear pnpm cache
+pnpm store prune
+
+# Install/update package
+pnpm uninstall -g @0xshariq/email-mcp-server
+pnpm install -g @0xshariq/email-mcp-server@latest
+
+# Verify
+pnpm list -g @0xshariq/email-mcp-server
+```
+
+### **Problem: Multiple Package Managers Conflict**
+
+#### **🔍 Symptoms:**
+- Commands work with one package manager but not another
+- Different versions installed with different managers
+
+#### **✅ Solution: Choose One Package Manager**
+```bash
+# Option A: Clean everything and use npm only
+pnpm uninstall -g @0xshariq/email-mcp-server
+npm install -g @0xshariq/email-mcp-server
+
+# Option B: Clean everything and use pnpm only  
+npm uninstall -g @0xshariq/email-mcp-server
+pnpm install -g @0xshariq/email-mcp-server
+
+# Use consistent commands
+# For npm: npx @0xshariq/email-mcp-server email-cli
+# For pnpm: pnpm exec email-cli
+```
+
+---
+
+## 🔐 Environment Variables Issues
+
+### **Problem: Authentication Errors**
+
+#### **🔍 Symptoms:**
+- "Invalid login credentials" errors
+- "Authentication failed" messages
+- Connection timeouts
+
+#### **✅ Solutions:**
+
+##### **Solution 1: Verify Environment Variables**
+```bash
+# Check all required variables
+echo "EMAIL_USER: $EMAIL_USER"
+echo "EMAIL_PASS: $EMAIL_PASS"
+echo "SMTP_HOST: $SMTP_HOST"
+echo "SMTP_PORT: $SMTP_PORT"
+echo "IMAP_HOST: $IMAP_HOST"
+echo "IMAP_PORT: $IMAP_PORT"
+```
+
+##### **Solution 2: Gmail App Password Setup**
+```bash
+# 1. Enable 2-Factor Authentication in Gmail
+# 2. Generate App Password:
+#    - Go to Google Account settings
+#    - Security → 2-Step Verification → App passwords
+#    - Generate password for "Mail"
+# 3. Use app password (not regular password)
+
+# Set correct Gmail settings
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-16-char-app-password  # Not regular password!
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+IMAP_HOST=imap.gmail.com
+IMAP_PORT=993
+IMAP_TLS=true
+```
+
+##### **Solution 3: Outlook/Hotmail Setup**
+```bash
+EMAIL_USER=your-email@outlook.com
+EMAIL_PASS=your-password
+SMTP_HOST=smtp-mail.outlook.com
+SMTP_PORT=587
+SMTP_SECURE=false
+IMAP_HOST=outlook.office365.com
+IMAP_PORT=993
+IMAP_TLS=true
+```
+
+### **Problem: Environment Variables Not Loading**
+
+#### **✅ Solution: Check Loading Order**
+```bash
+# 1. Check if .env file exists
+ls -la .env
+
+# 2. Verify .env file format (no spaces around =)
+cat .env
+# Should look like:
+# EMAIL_USER=test@gmail.com
+# EMAIL_PASS=password123
+
+# 3. Check current directory when running commands
+pwd
+
+# 4. Use absolute path for .env or set system variables
+```
+
+---
+
+## 📧 Email Authentication Issues
+
+### **Problem: Gmail "Less Secure Apps" Error**
+
+#### **✅ Solution: Use App Passwords (Required)**
+Gmail no longer supports "less secure apps." You MUST use app passwords:
+
+1. **Enable 2-Factor Authentication**
+2. **Generate App Password:**
+   - Google Account → Security → 2-Step Verification
+   - App passwords → Select "Mail" → Generate
+3. **Use 16-character app password instead of regular password**
+
+### **Problem: Corporate Email Issues**
+
+#### **✅ Solutions:**
+
+##### **For Office 365/Exchange:**
+```bash
+EMAIL_USER=your-email@company.com
+EMAIL_PASS=your-password
+SMTP_HOST=smtp.office365.com  # or your company's SMTP
+SMTP_PORT=587
+SMTP_SECURE=false
+IMAP_HOST=outlook.office365.com
+IMAP_PORT=993
+IMAP_TLS=true
+```
+
+##### **For Custom SMTP:**
+```bash
+# Contact your IT department for:
+SMTP_HOST=mail.yourcompany.com
+SMTP_PORT=587  # or 25, 465, 2525
+SMTP_SECURE=false  # or true for port 465
+IMAP_HOST=mail.yourcompany.com
+IMAP_PORT=993  # or 143
+IMAP_TLS=true
+```
+
+---
+
+## 🌐 Network & Connection Issues
+
+### **Problem: Connection Timeouts**
+
+#### **✅ Solutions:**
+
+##### **Solution 1: Check Network Connectivity**
+```bash
+# Test SMTP connection
+telnet smtp.gmail.com 587
+
+# Test IMAP connection  
+telnet imap.gmail.com 993
+
+# If telnet fails, check firewall/proxy settings
+```
+
+##### **Solution 2: Corporate Firewall/Proxy**
+```bash
+# Set proxy if required (contact IT)
+npm config set proxy http://proxy.company.com:8080
+npm config set https-proxy http://proxy.company.com:8080
+
+# Or set environment variables
+export HTTP_PROXY=http://proxy.company.com:8080
+export HTTPS_PROXY=http://proxy.company.com:8080
+```
+
+##### **Solution 3: Alternative Ports**
+```bash
+# Try alternative SMTP ports
+SMTP_PORT=25    # Standard SMTP
+SMTP_PORT=465   # SMTP over SSL
+SMTP_PORT=587   # SMTP with STARTTLS (recommended)
+SMTP_PORT=2525  # Alternative port (some providers)
+
+# Adjust SMTP_SECURE accordingly
+SMTP_SECURE=true   # for port 465
+SMTP_SECURE=false  # for ports 25, 587, 2525
+```
+
+---
+
+## ⚙️ General CLI Issues
+
+### **Problem: Command Hangs or Freezes**
+
+#### **✅ Solutions:**
+
+##### **Solution 1: Timeout Settings**
+```bash
+# Set timeout environment variables
+IMAP_CONN_TIMEOUT=60000  # 60 seconds
+SMTP_TIMEOUT=30000       # 30 seconds
+```
+
+##### **Solution 2: Debug Mode**
+```bash
+# Run commands with debug output
+DEBUG=* email-cli --version
+DEBUG=* email-send "test@example.com" "Subject" "Body"
+```
+
+### **Problem: Weird Characters or Encoding Issues**
+
+#### **✅ Solutions:**
+
+##### **Windows:**
+```powershell
+# Set UTF-8 encoding
+chcp 65001
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+```
+
+##### **macOS/Linux:**
+```bash
+# Set locale
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+```
+
+### **Problem: Update Command Not Working**
+
+#### **✅ Solution: Manual Update**
+```bash
+# Check current version
+email-cli --version
+
+# Manual update
+npm uninstall -g @0xshariq/email-mcp-server
+npm install -g @0xshariq/email-mcp-server@latest
+
+# Or for pnpm
+pnpm uninstall -g @0xshariq/email-mcp-server
+pnpm install -g @0xshariq/email-mcp-server@latest
+
+# Verify update
+email-cli --version
+```
+
+---
+
+## 🔧 Advanced Troubleshooting
+
+### **Problem: Nothing Works - Nuclear Option**
+
+When all else fails, complete clean reinstall:
+
+```bash
+# 1. Uninstall from all package managers
+npm uninstall -g @0xshariq/email-mcp-server
+pnpm uninstall -g @0xshariq/email-mcp-server
+
+# 2. Clear all caches
+npm cache clean --force
+pnpm store prune
+
+# 3. Remove global node_modules (be careful!)
+# On Windows: C:\Users\username\AppData\Roaming\npm\node_modules
+# On macOS/Linux: /usr/local/lib/node_modules (if using sudo)
+
+# 4. Reinstall Node.js if necessary
+
+# 5. Fresh install with preferred package manager
+npm install -g @0xshariq/email-mcp-server@latest
+# or
+pnpm install -g @0xshariq/email-mcp-server@latest
+
+# 6. Use npx/pnpm exec as workaround while fixing PATH
+npx @0xshariq/email-mcp-server email-cli --version
+pnpm exec email-cli --version
+```
+
+### **Getting Help**
+
+If you're still having issues:
+
+1. **Check the logs:** Most commands show detailed error messages
+2. **Use debug mode:** `DEBUG=* email-cli command`
+3. **Try npx/pnpm exec:** These always work regardless of PATH issues
+4. **Check GitHub Issues:** [GitHub Issues](https://github.com/0xshariq/email-mcp-server/issues)
+5. **Create new issue:** Include your OS, package manager, and error messages
+
+---
+
+## 📋 Quick Reference - Common Solutions
+
+| Problem | Quick Fix |
+|---------|-----------|
+| Windows "Unknown command" | `pnpm exec email-cli --version` or `npx @0xshariq/email-mcp-server email-cli` |
+| PATH not working | Use Administrator PowerShell + restart computer |
+| Permission denied | `sudo npm install -g` or fix npm permissions |
+| Authentication failed | Use Gmail app password, not regular password |
+| Connection timeout | Check firewall, try different ports |
+| Package not found | `npm cache clean --force && npm install -g @0xshariq/email-mcp-server@latest` |
+| Environment variables not working | Set Machine-level vars (Windows) or check .env file format |
+| Command hangs | Set timeout environment variables |
+| Update fails | Manual uninstall + reinstall |
+
+**Remember:** When in doubt, `npx @0xshariq/email-mcp-server email-cli --version` or `pnpm exec email-cli --version` always works! 🚀

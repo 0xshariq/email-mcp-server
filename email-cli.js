@@ -91,25 +91,38 @@ let commandName = path.basename(fullPath);
 if (commandName === 'email-cli.js') {
   let detectedCommand = null;
   
-  // Try to detect from parent process
-  try {
-    const ppid = process.ppid;
-    if (ppid) {
-      const psOutput = execSync(`ps -p ${ppid} -o args= 2>/dev/null || echo ""`, { encoding: 'utf8' }).trim();
-      const wrapperMatch = psOutput.match(/(?:bash|sh|dash)\s+.*?\/([e][a-z-]+)(?:\s|$)/);
-      if (wrapperMatch && wrapperMatch[1]) {
-        detectedCommand = wrapperMatch[1];
+  // Try to detect from parent process (Unix-like systems)
+  if (process.platform !== 'win32') {
+    try {
+      const ppid = process.ppid;
+      if (ppid) {
+        const psOutput = execSync(`ps -p ${ppid} -o args= 2>/dev/null || echo ""`, { encoding: 'utf8' }).trim();
+        const wrapperMatch = psOutput.match(/(?:bash|sh|dash)\s+.*?\/([e][a-z-]+)(?:\s|$)/);
+        if (wrapperMatch && wrapperMatch[1]) {
+          detectedCommand = wrapperMatch[1];
+        }
       }
+    } catch (e) {
+      // Ignore errors - common on Windows or restricted environments
     }
-  } catch (e) {
-    // Ignore errors
   }
   
-  // Fallback to environment variable
+  // Fallback to environment variable (works on all platforms)
   if (!detectedCommand && process.env._) {
     const envCommand = path.basename(process.env._);
     if (envCommand.startsWith('e') && envCommand !== 'email-mcp-server') {
       detectedCommand = envCommand;
+    }
+  }
+  
+  // Windows pnpm detection - check process.argv[1] path for command name
+  if (!detectedCommand && process.platform === 'win32') {
+    const scriptPath = process.argv[1];
+    if (scriptPath) {
+      const pathMatch = scriptPath.match(/([e][a-z-]+)(?:\.cmd|\.bat)?$/);
+      if (pathMatch && pathMatch[1] && pathMatch[1] !== 'email-cli') {
+        detectedCommand = pathMatch[1];
+      }
     }
   }
   
