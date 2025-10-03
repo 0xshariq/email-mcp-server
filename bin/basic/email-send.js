@@ -23,20 +23,25 @@ async function main() {
     const args = process.argv.slice(2);
 
     if (args.includes('--help') || args.includes('-h')) {
-        showHelp(
-            'Email Send',
-            'email-send <to> <subject> <body> [html]',
-            'Send an email to recipients with optional HTML content.',
-            [
-                'email-send user@example.com Hello "This is a test message"',
-                'esend user1@example.com,user2@example.com Meeting "Team meeting at 3 PM"',
-                'email-send user1@example.com,user2@example.com,user3@example.com "Multiple Recipients" "Message to 3 people"',
-                'email-send user@example.com "HTML Email" "Plain text" "<h1>HTML Content</h1>"'
-            ],
-            [
-                { flag: '--help, -h', description: 'Show this help message' }
-            ]
-        );
+        console.log(chalk.bold.cyan('\nEmail Send\n'));
+        
+        console.log(chalk.bold('USAGE:'));
+        console.log(chalk.cyan('  email-send <to> <subject> <body> [html]'));
+        console.log();
+        
+        console.log(chalk.bold('DESCRIPTION:'));
+        console.log('  Send an email to recipients with optional HTML content.');
+        console.log();
+        
+        console.log(chalk.bold('ARGUMENTS:'));
+        console.log();
+        
+        console.log(chalk.bold('EXAMPLES:'));
+        console.log(chalk.yellow('  email-send user@example.com Hello "This is a test message"'));
+        console.log(chalk.yellow('  esend user1@example.com,user2@example.com Meeting "Team meeting at 3 PM"'));
+        console.log(chalk.yellow('  email-send user1@example.com,user2@example.com,user3@example.com "Multiple Recipients" "Message to 3 people"'));
+        console.log(chalk.yellow('  email-send user@example.com "HTML Email" "Plain text" "<h1>HTML Content</h1>"'));
+        console.log();
         return;
     }
 
