@@ -158,7 +158,7 @@ const commands = {
   
   // Utility Commands  
   'list': 'basic/list.js',
-  'email-cli': null // Special case - handled in main function
+  'email-cli': null // Special case - handled in main function, includes setup-env and export-env subcommands
 };
 
 async function main() {
@@ -187,12 +187,43 @@ async function main() {
     if (commandArgs.includes('--version') || commandArgs.includes('-v')) {
       showVersion();
       return;
-    } else if (commandArgs.includes('--help') || commandArgs.includes('-h') || commandArgs.length === 0) {
+    } else if (commandArgs.includes('--help') || commandArgs.includes('-h')) {
       showUsage();
       return;
+    } else if (commandArgs.length === 0) {
+      // Default behavior: show recent emails (like list command)
+      displayCurrentUser();
+      const scriptPath = path.join(__dirname, 'bin', 'basic/list.js');
+      
+      if (!fs.existsSync(scriptPath)) {
+        console.error(chalk.red.bold(`❌ Script not found: ${scriptPath}`));
+        showUsage();
+        process.exit(1);
+      }
+      
+      // Execute the list script
+      process.chdir(__dirname);
+      const childProcess = spawn('node', [scriptPath], {
+        stdio: 'inherit',
+        cwd: __dirname,
+        env: { 
+          ...process.env,
+          NODE_PATH: __dirname
+        }
+      });
+
+      childProcess.on('close', (code) => {
+        process.exit(code || 0);
+      });
+
+      childProcess.on('error', (err) => {
+        console.error(chalk.red.bold('❌ Error executing list script:'), err.message);
+        process.exit(1);
+      });
+      return;
     } else {
-      console.error(chalk.red.bold(`❌ Unknown option for email-cli: ${commandArgs[0]}`));
-      console.log(chalk.yellow('💡 Use --help or --version'));
+      console.error(chalk.red.bold(`❌ Unknown argument for email-cli: ${commandArgs[0]}`));
+      console.log(chalk.yellow('💡 Use --help or --version, or run without arguments to see emails'));
       process.exit(1);
     }
   }
@@ -262,6 +293,8 @@ function showVersion() {
   }
 }
 
+
+
 function showUsage() {
   console.log();
   console.log(chalk.bold.cyan('📧 Email MCP CLI') + chalk.gray(' - ') + chalk.bold.white('Email Operations Suite'));
@@ -297,15 +330,21 @@ function showUsage() {
   console.log();
   
   console.log(chalk.bold.blue('Utility Commands:'));
-  console.log(chalk.cyan('  list                       Show recent emails (renamed from email-list)'));
-  console.log(chalk.cyan('  email-cli                  Show this help or version'));
+  console.log(chalk.cyan('  list                       Show recent emails'));
+  console.log(chalk.cyan('  email-cli                  Show recent emails (main command)'));
   console.log();
   
   console.log(chalk.bold.yellow('Usage:'));
-  console.log(chalk.blue('  email-cli <command> [arguments]'));
+  console.log(chalk.blue('  email-cli') + chalk.gray('                   Show recent emails'));
   console.log(chalk.blue('  email-cli --version') + chalk.gray('        Show version information'));
   console.log(chalk.blue('  email-cli --help') + chalk.gray('           Show this help message'));
   console.log(chalk.blue('  <command> --help') + chalk.gray('           Show help for specific command'));
+  console.log();
+  
+  console.log(chalk.bold.yellow('Quick Start:'));
+  console.log(chalk.gray('1. Set up environment variables (see documentation)'));
+  console.log(chalk.gray('2. Run: ') + chalk.blue('email-cli --version') + chalk.gray(' to view version'));
+  console.log(chalk.gray('3. Use specific commands like: ') + chalk.blue('esend "user@example.com" "Subject" "Body"'));
   console.log();
 }
 

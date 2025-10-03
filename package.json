@@ -5,10 +5,12 @@
   "keywords": [
     "email",
     "mcp",
-    "mcp",
     "server",
     "smtp",
-    "imap"
+    "imap",
+    "send",
+    "delete",
+    "attach"
   ],
   "homepage": "https://github.com/0xshariq/email-mcp-server#readme",
   "bugs": {

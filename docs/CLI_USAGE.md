@@ -184,12 +184,32 @@ setx PATH "%PATH%;%AppData%\npm"
 
 ## 🔧 Environment Setup
 
-### 1. Create .env file:
+> **⚠️ IMPORTANT PLATFORM NOTE:**  
+> Environment variable commands are **platform-specific**:
+> - **Linux/macOS/WSL:** Use `export VAR="value"`
+> - **Windows PowerShell:** Use `$env:VAR = "value"` or `[Environment]::SetEnvironmentVariable()`
+> - **Windows CMD:** Use `set VAR=value` or `setx VAR "value"`
+> 
+> **Do NOT use `export` commands on Windows** - they will not work!
+
+Email MCP Server supports multiple ways to configure your email settings:
+
+### 📁 Method 1: .env File (Recommended for Local Development)
+
+**Create and configure .env file:**
+
 ```bash
+# Linux/macOS
 cp .env.example .env
+
+# Windows Command Prompt
+copy .env.example .env
+
+# Windows PowerShell
+Copy-Item .env.example .env
 ```
 
-### 2. Configure email settings:
+**Configure email settings in .env:**
 ```env
 # Gmail Configuration (most common)
 SMTP_HOST=smtp.gmail.com
@@ -206,11 +226,220 @@ IMAP_MARK_SEEN=false
 # Other providers supported (Outlook, Yahoo, custom SMTP/IMAP)
 ```
 
-### 3. Gmail App Password Setup:
-1. Enable 2-Factor Authentication
-2. Go to Google Account → Security → App Passwords
-3. Generate password for "Mail"
-4. Use this 16-character password in `EMAIL_PASS`
+### 🌍 Method 2: Environment Variables (Cross-Platform Setup)
+
+⚠️ **Important Note:** Environment variable commands are **NOT universal across platforms**. Each operating system uses different syntax. Choose the correct commands for your platform:
+
+Environment variable setup differs by platform. Choose your platform:
+
+#### **🐧 Linux/macOS/WSL (Bash/Zsh)**
+```bash
+# Temporary (current session only)
+export SMTP_HOST="smtp.gmail.com"
+export SMTP_PORT="587"
+export SMTP_SECURE="false"
+export EMAIL_USER="your-email@gmail.com"
+export EMAIL_PASS="your-app-password"
+export IMAP_HOST="imap.gmail.com"
+export IMAP_PORT="993"
+export IMAP_TLS="true"
+
+# Permanent setup (add to ~/.bashrc or ~/.zshrc)
+echo 'export SMTP_HOST="smtp.gmail.com"' >> ~/.bashrc
+echo 'export SMTP_PORT="587"' >> ~/.bashrc
+echo 'export SMTP_SECURE="false"' >> ~/.bashrc
+echo 'export EMAIL_USER="your-email@gmail.com"' >> ~/.bashrc
+echo 'export EMAIL_PASS="your-app-password"' >> ~/.bashrc
+echo 'export IMAP_HOST="imap.gmail.com"' >> ~/.bashrc
+echo 'export IMAP_PORT="993"' >> ~/.bashrc
+echo 'export IMAP_TLS="true"' >> ~/.bashrc
+
+# Reload shell configuration
+source ~/.bashrc  # or source ~/.zshrc
+```
+
+#### **🪟 Windows PowerShell**
+```powershell
+# Temporary (current session only)
+$env:SMTP_HOST = "smtp.gmail.com"
+$env:SMTP_PORT = "587"
+$env:SMTP_SECURE = "false"
+$env:EMAIL_USER = "your-email@gmail.com"
+$env:EMAIL_PASS = "your-app-password"
+$env:IMAP_HOST = "imap.gmail.com"
+$env:IMAP_PORT = "993"
+$env:IMAP_TLS = "true"
+
+# Permanent setup (User-level)
+[Environment]::SetEnvironmentVariable("SMTP_HOST", "smtp.gmail.com", "User")
+[Environment]::SetEnvironmentVariable("SMTP_PORT", "587", "User")
+[Environment]::SetEnvironmentVariable("SMTP_SECURE", "false", "User")
+[Environment]::SetEnvironmentVariable("EMAIL_USER", "your-email@gmail.com", "User")
+[Environment]::SetEnvironmentVariable("EMAIL_PASS", "your-app-password", "User")
+[Environment]::SetEnvironmentVariable("IMAP_HOST", "imap.gmail.com", "User")
+[Environment]::SetEnvironmentVariable("IMAP_PORT", "993", "User")
+[Environment]::SetEnvironmentVariable("IMAP_TLS", "true", "User")
+
+# Restart PowerShell to load permanent variables
+```
+
+#### **🖥️ Windows Command Prompt**
+```cmd
+# Temporary (current session only)
+set SMTP_HOST=smtp.gmail.com
+set SMTP_PORT=587
+set SMTP_SECURE=false
+set EMAIL_USER=your-email@gmail.com
+set EMAIL_PASS=your-app-password
+set IMAP_HOST=imap.gmail.com
+set IMAP_PORT=993
+set IMAP_TLS=true
+
+# Permanent setup (User-level)
+setx SMTP_HOST "smtp.gmail.com"
+setx SMTP_PORT "587"
+setx SMTP_SECURE "false"
+setx EMAIL_USER "your-email@gmail.com"
+setx EMAIL_PASS "your-app-password"
+setx IMAP_HOST "imap.gmail.com"
+setx IMAP_PORT "993"
+setx IMAP_TLS "true"
+
+# Restart Command Prompt to load permanent variables
+```
+
+### 🔄 **Platform Compatibility Summary**
+
+| Platform | Temporary Command | Permanent Method | Shell Restart Required |
+|----------|-------------------|------------------|----------------------|
+| **Linux/macOS/WSL** | `export VAR="value"` | Add to `~/.bashrc` | `source ~/.bashrc` |
+| **Windows PowerShell** | `$env:VAR = "value"` | `[Environment]::SetEnvironmentVariable()` | Yes |
+| **Windows CMD** | `set VAR=value` | `setx VAR "value"` | Yes |
+
+**⚠️ Critical Platform Warning:** 
+- The `export` command **ONLY works on Unix-like systems** (Linux/macOS/WSL)
+- **Windows users MUST use** `$env:` (PowerShell) or `set`/`setx` (CMD)
+- **Common Error:** Using `export` in Windows Command Prompt or PowerShell will fail
+
+### 🚨 **Common Platform Issues & Solutions**
+
+**Problem:** `'export' is not recognized as an internal or external command` (Windows)
+```
+Solution: You're using Unix commands on Windows. Use Windows-specific commands:
+- PowerShell: $env:SMTP_HOST = "smtp.gmail.com" 
+- CMD: set SMTP_HOST=smtp.gmail.com
+```
+
+**Problem:** Environment variables not persisting after restart
+```
+Solution: Use permanent setup commands:
+- Linux/macOS: Add export commands to ~/.bashrc or ~/.zshrc
+- Windows PowerShell: Use [Environment]::SetEnvironmentVariable()
+- Windows CMD: Use setx command
+```
+
+**Problem:** Commands work in terminal but not in CLI
+```
+Solution: Restart your terminal/PowerShell after setting permanent variables
+```
+
+### 📧 Gmail App Password Setup:
+1. **Enable 2-Factor Authentication** in your Google Account
+2. Go to **Google Account → Security → App Passwords**
+3. Select **Mail** and generate a 16-character password
+4. Use this generated password in `EMAIL_PASS` (not your regular Gmail password)
+
+### 🔍 Verify Environment Setup:
+
+**Check if variables are set:**
+```powershell
+# PowerShell
+Get-ChildItem Env: | Where-Object {$_.Name -like "*EMAIL*" -or $_.Name -like "*SMTP*" -or $_.Name -like "*IMAP*"}
+
+# Command Prompt  
+set | findstr /i "EMAIL SMTP IMAP"
+
+# Linux/macOS
+env | grep -E "(EMAIL|SMTP|IMAP)"
+```
+
+**Test with a command:**
+```bash
+# Should show your configured email account
+email-stats
+email-cli --version
+```
+
+### � Quick Start
+
+Once environment is configured, test the CLI:
+
+```bash
+# View recent emails (main command)
+email-cli
+
+# Check version
+email-cli --version
+
+# Send an email
+esend "recipient@example.com" "Test Subject" "Hello from Email MCP CLI!"
+
+# View email statistics
+email-stats
+```
+
+**Complete Setup Examples by Platform:**
+
+**Linux/macOS/WSL:**
+```bash
+# 1. Set Gmail environment variables
+export SMTP_HOST="smtp.gmail.com"
+export SMTP_PORT="587" 
+export SMTP_SECURE="false"
+export EMAIL_USER="your-email@gmail.com"
+export EMAIL_PASS="your-app-password"
+export IMAP_HOST="imap.gmail.com"
+export IMAP_PORT="993"
+export IMAP_TLS="true"
+
+# 2. Test the setup
+email-cli                    # View recent emails
+email-stats                  # Check account info
+```
+
+**Windows PowerShell:**
+```powershell
+# 1. Set Gmail environment variables (temporary)
+$env:SMTP_HOST = "smtp.gmail.com"
+$env:SMTP_PORT = "587"
+$env:SMTP_SECURE = "false"
+$env:EMAIL_USER = "your-email@gmail.com"
+$env:EMAIL_PASS = "your-app-password"
+$env:IMAP_HOST = "imap.gmail.com"
+$env:IMAP_PORT = "993"
+$env:IMAP_TLS = "true"
+
+# 2. Test the setup
+email-cli                    # View recent emails
+email-stats                  # Check account info
+```
+
+**Windows Command Prompt:**
+```cmd
+# 1. Set Gmail environment variables (temporary)
+set SMTP_HOST=smtp.gmail.com
+set SMTP_PORT=587
+set SMTP_SECURE=false
+set EMAIL_USER=your-email@gmail.com
+set EMAIL_PASS=your-app-password
+set IMAP_HOST=imap.gmail.com
+set IMAP_PORT=993
+set IMAP_TLS=true
+
+# 2. Test the setup
+email-cli                    # View recent emails
+email-stats                  # Check account info
+```
 
 ## 📧 Basic Email Operations
 
