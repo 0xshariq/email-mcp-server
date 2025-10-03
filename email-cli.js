@@ -186,6 +186,13 @@ async function main() {
       showUsage();
       return;
     }
+    
+    // Handle update command directly here
+    if (args[0] === 'update') {
+      await handleUpdate();
+      return;
+    }
+    
     command = args[0];
     commandArgs = args.slice(1);
   }
@@ -286,6 +293,9 @@ async function main() {
       console.error(chalk.red.bold('❌ Error executing script:'), err.message);
       process.exit(1);
     });
+  } else if (command === 'update') {
+    // Handle update command that wasn't caught earlier
+    await handleUpdate();
   } else {
     console.error(chalk.red.bold(`❌ Unknown command: ${command}`));
     console.log(chalk.yellow('\n💡 Run with --help to see available commands'));
