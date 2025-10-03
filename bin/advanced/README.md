@@ -20,19 +20,39 @@ esearch --subject "meeting" --unread
 ```
 
 ### 📎 Email Attach (`email-attach.js` / `eattach`)
-Send email with file attachments.
+Send email with unlimited file attachments (comma-separated paths and names).
 
 **Usage:**
 ```bash
-email-attach <to> <subject> <body> <attachment-path>
-eattach <to> <subject> <body> <attachment-path>
+email-attach <to> <subject> <body> <attachment-paths> [attachment-names]
+eattach <to> <subject> <body> <attachment-paths> [attachment-names]
 ```
+
+**Attachment Format:**
+- **Paths**: Comma-separated file paths
+- **Names**: Comma-separated attachment names (optional)
+- **Order**: Names must match the order of paths
 
 **Examples:**
 ```bash
-email-attach "user@example.com" "Report" "Please find attached" "/path/to/report.pdf"
-eattach "team@company.com" "Invoice" "Invoice attached" "./invoice.pdf"
+# Single attachment
+email-attach "user@example.com" "Report" "Please find attached" "./report.pdf"
+
+# Multiple attachments with custom names
+email-attach "user@example.com" "Files" "Multiple files attached" "./file1.pdf,./file2.jpg,./data.xlsx" "Report,Photo,Spreadsheet"
+
+# Multiple attachments without custom names (uses original filenames)
+eattach "team@company.com" "Resources" "Project files" "./code.js,./docs.pdf,./image.png"
+
+# Complex example
+email-attach "client@example.com" "Project Delivery" "Final deliverables" "/home/user/project/final.pdf,/home/user/project/code.zip,/home/user/project/demo.mp4" "Final Report,Source Code,Demo Video"
 ```
+
+**Features:**
+- **Unlimited attachments**: No limit on number of files
+- **Custom naming**: Override default filenames
+- **Size validation**: Automatic file size checking (Gmail: 25MB total)
+- **Type detection**: Automatic MIME type detection
 
 ### ↪️ Email Forward (`email-forward.js` / `eforward`)
 Forward an existing email to another recipient.

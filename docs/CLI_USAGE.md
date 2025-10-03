@@ -2,32 +2,184 @@
 
 Complete guide for using the Email MCP Server CLI tools. The CLI provides comprehensive email management capabilities through both short and long command aliases.
 
-## 📦 Installation
+## 📦 Installation Guide
 
-### Global Installation (Recommended)
+### 🌍 Global Installation (Recommended)
+
+Install the Email MCP Server globally to use commands from anywhere on your system:
+
 ```bash
+# Install globally via npm
 npm install -g @0xshariq/email-mcp-server
+
+# Verify installation
+email-cli --version
+esend --help
 ```
 
-After global installation, all commands are available system-wide:
+**✅ After global installation, all 40+ commands work directly:**
 ```bash
-# All these work directly:
+# Email operations
 email-send "user@example.com" "Subject" "Body"
 esend "user@example.com" "Subject" "Body"  
 eread 10
-cadd "John Doe" "john@example.com"
+list --unread
+
+# Contact management  
+cadd "John Doe" "john@example.com" "work"
+contact-list
+csearch "gmail.com"
+
+# All commands available system-wide!
 ```
 
-### Local Development
+### 🏠 Local Installation
+
+For development or project-specific usage:
+
 ```bash
-# Clone and build
+# Clone repository
 git clone https://github.com/0xshariq/email-mcp-server.git
 cd email-mcp-server
+
+# Install dependencies
 npm install
+
+# Build TypeScript
 npm run build
 
-# Use with node
+# Use with node prefix
 node email-cli.js email-send "user@example.com" "Subject" "Body"
+node email-cli.js list 5
+node email-cli.js cadd "Jane Doe" "jane@example.com"
+```
+
+### 🔗 Symlink Setup
+
+#### For Global Installation
+If global installation doesn't create symlinks automatically, set them up manually:
+
+**Windows (Run as Administrator):**
+```cmd
+# Navigate to global npm directory
+npm config get prefix
+cd %AppData%\npm
+
+# Create symlinks (example for key commands)
+mklink email-send.cmd node_modules\.bin\email-send.cmd
+mklink esend.cmd node_modules\.bin\esend.cmd
+mklink list.cmd node_modules\.bin\list.cmd
+```
+
+**macOS/Linux:**
+```bash
+# Check global npm directory
+npm config get prefix
+
+# If symlinks missing, create manually
+sudo ln -sf $(npm config get prefix)/lib/node_modules/@0xshariq/email-mcp-server/email-cli.js /usr/local/bin/email-send
+sudo ln -sf $(npm config get prefix)/lib/node_modules/@0xshariq/email-mcp-server/email-cli.js /usr/local/bin/esend
+sudo ln -sf $(npm config get prefix)/lib/node_modules/@0xshariq/email-mcp-server/email-cli.js /usr/local/bin/list
+
+# Or use provided setup script
+chmod +x setup-symlinks.sh
+sudo ./setup-symlinks.sh
+```
+
+#### For Local Installation
+Create symlinks for local development convenience:
+
+**macOS/Linux:**
+```bash
+# Navigate to project directory
+cd email-mcp-server
+
+# Make setup script executable and run
+chmod +x setup-symlinks.sh
+sudo ./setup-symlinks.sh
+
+# Or create manual symlinks to /usr/local/bin/
+sudo ln -sf "$(pwd)/email-cli.js" /usr/local/bin/email-send
+sudo ln -sf "$(pwd)/email-cli.js" /usr/local/bin/esend  
+sudo ln -sf "$(pwd)/email-cli.js" /usr/local/bin/list
+sudo ln -sf "$(pwd)/email-cli.js" /usr/local/bin/cadd
+sudo ln -sf "$(pwd)/email-cli.js" /usr/local/bin/contact-list
+# ... (continue for all 40+ commands)
+```
+
+**Windows (Local Development):**
+```cmd
+# Run as Administrator in project directory
+cd email-mcp-server
+
+# Create batch files for convenience
+echo @echo off > email-send.bat
+echo node "%~dp0email-cli.js" email-send %* >> email-send.bat
+
+echo @echo off > esend.bat  
+echo node "%~dp0email-cli.js" email-send %* >> esend.bat
+
+echo @echo off > list.bat
+echo node "%~dp0email-cli.js" list %* >> list.bat
+
+# Add project directory to PATH
+setx PATH "%PATH%;%CD%"
+```
+
+### 🔍 Verify Installation
+
+Test your installation with these commands:
+
+```bash
+# Check if CLI is available
+email-cli --version
+email-cli --help
+
+# Test basic commands
+esend --help              # Should show email-send help
+list --help               # Should show list help  
+cadd --help               # Should show contact-add help
+
+# Test actual functionality (after .env setup)
+email-stats               # Should show inbox statistics
+contact-list              # Should show contact list (may be empty)
+list 1                    # Should show latest email
+```
+
+### 📋 Installation Troubleshooting
+
+#### Command Not Found
+```bash
+# Check if globally installed
+npm list -g @0xshariq/email-mcp-server
+
+# Check PATH includes npm global bin
+echo $PATH | grep npm
+
+# Reinstall if needed
+npm uninstall -g @0xshariq/email-mcp-server
+npm install -g @0xshariq/email-mcp-server
+```
+
+#### Permission Issues (Linux/macOS)
+```bash
+# Fix npm global permissions
+sudo chown -R $(whoami) $(npm config get prefix)/{lib/node_modules,bin,share}
+
+# Or use npm prefix for user directory
+npm config set prefix ~/.local
+export PATH=~/.local/bin:$PATH
+```
+
+#### Windows Path Issues
+```cmd
+# Check npm global directory
+npm config get prefix
+
+# Add to PATH if missing
+setx PATH "%PATH%;%AppData%\npm"
+
+# Restart terminal/command prompt
 ```
 
 ## 🔧 Environment Setup
@@ -63,25 +215,27 @@ IMAP_MARK_SEEN=false
 ## 📧 Basic Email Operations
 
 ### 📤 Send Email (`email-send` / `esend`)
-Send emails to one or more recipients with optional HTML content.
+Send emails to up to 3 recipients with optional HTML content. For more recipients, use `email-bulk`.
 
 ```bash
 # Basic usage
 email-send "user@example.com" "Subject" "Email body"
 esend "user@example.com" "Meeting Reminder" "Team meeting at 3 PM today"
 
-# Multiple recipients
-email-send "user1@example.com,user2@example.com" "Update" "Important update for everyone"
+# Multiple recipients (up to 3)
+email-send "user1@example.com,user2@example.com,user3@example.com" "Update" "Important update for everyone"
 
 # With HTML content
 esend "client@example.com" "Newsletter" "Plain text version" "<h1>HTML Newsletter</h1><p>Rich content here</p>"
 ```
 
 **Arguments:**
-- `to` - Recipient email(s), comma-separated
+- `to` - Recipient email(s), comma-separated (max 3 recipients)
 - `subject` - Email subject line  
 - `body` - Plain text message body
 - `html` - Optional HTML content
+
+**Note:** For more than 3 recipients, use the `email-bulk` command instead.
 
 ### 📬 Read Recent Emails (`email-read` / `eread`)
 Retrieve and display recent emails from your inbox.
@@ -138,9 +292,36 @@ Change the read status of emails.
 ```bash
 # Mark as read
 email-mark-read 12345 true
-emarkread 67890
+emarkread 67890 true
 
-# Mark as unread  
+# Mark as unread
+email-mark-read 12345 false
+emarkread 67890 false
+```
+
+**Arguments:**
+- `email_id` - Email ID to update
+- `read_status` - `true` (read) or `false` (unread)
+
+### 📋 List All Commands (`list`)
+Display all available CLI commands with descriptions and aliases.
+
+```bash
+# Show all commands
+list
+
+# Example output shows:
+# - Basic email operations (send, read, get, delete, etc.)
+# - Advanced operations (search, attach, forward, etc.)  
+# - Contact management (add, list, search, etc.)
+# - Both full names and short aliases
+```
+
+**Features:**
+- **Organized by category** - Basic, Advanced, Contacts
+- **Shows aliases** - Both full and short command names
+- **Usage hints** - Quick examples for each command type
+- **No arguments needed** - Just run `list` to see all commands  
 emarkread 12345 false
 email-mark-read 67890 unread
 ```
@@ -182,24 +363,34 @@ esearch --to "me@company.com" --flagged true --since "2024-10-01"
 - `--limit <number>` - Max results (default: 10)
 
 ### 📎 Send with Attachment (`email-attach` / `eattach`)
-Send emails with file attachments up to 25MB.
+Send emails with unlimited file attachments (comma-separated paths and optional custom names).
 
 ```bash
-# Basic attachment
-email-attach "user@example.com" "Report" "Please find attached report" "/path/to/report.pdf"
-eattach "client@example.com" "Invoice" "Monthly invoice attached" "./invoice-oct.pdf"
+# Single attachment
+email-attach "user@example.com" "Report" "Please find attached report" "./report.pdf"
 
-# Multiple file types supported
-eattach "team@company.com" "Presentation" "Meeting slides" "/home/user/slides.pptx"
-email-attach "hr@company.com" "Documents" "Required forms" "/documents/forms.zip"
+# Multiple attachments with custom names
+email-attach "user@example.com" "Files" "Multiple files attached" "./file1.pdf,./file2.jpg,./data.xlsx" "Report,Photo,Spreadsheet"
+
+# Multiple attachments without custom names (uses original filenames)
+eattach "team@company.com" "Resources" "Project files" "./code.js,./docs.pdf,./image.png"
+
+# Complex example with full paths
+email-attach "client@example.com" "Deliverables" "Final project files" "/home/user/final.pdf,/home/user/code.zip,/home/user/demo.mp4" "Final Report,Source Code,Demo Video"
 ```
 
-**Supported File Types:**
-- Documents: PDF, DOC, DOCX, TXT, RTF
-- Spreadsheets: XLS, XLSX, CSV
-- Images: JPG, PNG, GIF, BMP
-- Archives: ZIP, RAR, 7Z, TAR.GZ
-- Others: Most file types up to 25MB
+**Arguments:**
+- `to` - Recipient email address
+- `subject` - Email subject line
+- `body` - Email message body
+- `attachment-paths` - Comma-separated file paths (unlimited)
+- `attachment-names` - Optional comma-separated custom names (must match order)
+
+**Features:**
+- **Unlimited attachments**: No limit on number of files
+- **Custom naming**: Override default filenames with custom names
+- **Auto-detection**: Automatic MIME type detection
+- **Size validation**: Total size limit depends on email provider (Gmail: 25MB)
 
 ### ↪️ Forward Email (`email-forward` / `eforward`)
 Forward existing emails to new recipients with additional message.
@@ -364,23 +555,26 @@ Search contacts by name, email domain, or any text.
 ```bash
 # Search by name
 contact-search "john"
-csearch "smith"
+csearch "jane"
 
 # Search by email domain
-csearch "gmail.com"
-contact-search "@company.com"
+csearch "@company.com"        # All company contacts
+csearch "@gmail.com"         # All Gmail contacts
 
-# Search by group
-csearch "work"
-contact-search "clients"
+# Search by partial email
+csearch "support@"           # All support emails
 
-# Partial searches
-csearch "dev"        # Finds "Developer", "dev@email.com", etc.
+# Search by any text
+csearch "client"             # Contacts with "client" in name/email
 ```
 
 **Arguments:**
-- `query` - Search term (searches name, email, and group fields)
+- `query` - Search term (name, email, or partial text)
 
+**Search Examples:**
+- Names: "john", "smith", "jane doe"
+- Domains: "@company.com", "@gmail.com"
+- Partials: "support@", "admin@", "sales@"
 ### 👥 Contacts by Group (`contact-group` / `cgroup`)
 Get all contacts belonging to a specific group.
 
@@ -393,10 +587,18 @@ cgroup "clients"
 cgroup "family"
 contact-group "vip"
 cgroup "management"
+cgroup "developers"
+
+# View all available groups
+cgroup --help    # Shows available groups if any
 ```
 
 **Arguments:**
-- `group_name` - Name of the contact group
+- `group` - Group name to filter contacts
+
+**Common Groups:**
+- "work", "clients", "family", "friends"
+- "vip", "management", "developers", "support"
 
 ### ✏️ Update Contact (`contact-update` / `cupdate`)
 Update existing contact information including name, email, phone, and group.
@@ -410,66 +612,94 @@ cupdate contact_456 name "Jane Smith-Johnson"
 cupdate contact_123 email "newemail@example.com"
 contact-update contact_456 email "updated@company.com"
 
-# Update group
-cupdate contact_789 group "management"
-contact-update contact_101 group "vip"
-
 # Update phone number
 cupdate contact_123 phone "+1-555-0123"
+contact-update contact_789 phone "555.123.4567"
+
+# Update group assignment
+cupdate contact_789 group "management"
+contact-update contact_101 group "vip"
+cupdate contact_202 group "developers"
+
+# Clear a field (set to empty)
+cupdate contact_123 phone ""
+cupdate contact_456 group ""
 ```
 
 **Arguments:**
-- `contact_id` - ID of contact to update (from contact-list)
-- `field` - Field to update: `name`, `email`, `phone`, `group`
-- `value` - New value for the field
+- `contact_id` - ID of contact to update (get from `contact-list`)
+- `field` - Field to update: `name`, `email`, `phone`, `group`  
+- `value` - New value for the field (use empty string to clear)
+
+**Update Examples:**
+- Names: "John Smith", "Jane Doe-Johnson", "Dr. Smith"
+- Emails: "new@company.com", "personal@gmail.com"
+- Phones: "+1-555-0123", "555.123.4567", "(555) 123-4567"
+- Groups: "work", "family", "clients", "vip"
 
 ### 🗑️ Delete Contact (`contact-delete` / `cdelete`)
 Remove contacts from your address book with confirmation.
 
 ```bash
-# Delete with confirmation prompt
+# Delete by contact ID
 contact-delete contact_123
 cdelete contact_456
 
-# Force delete without confirmation
-cdelete contact_123 --force
-contact-delete contact_456 -f
+# Delete with confirmation
+cdelete contact_789    # Will prompt for confirmation
+
+# Batch delete (if supported)
+contact-delete contact_123 contact_456 contact_789
 ```
 
 **Arguments:**
-- `contact_id` - ID of contact to delete
-- `--force` / `-f` - Skip confirmation prompt
+- `contact_id` - ID of contact to delete (get from `contact-list`)
 
 **Safety Features:**
-- Shows contact details before deletion
-- Requires confirmation unless `--force` used
-- Cannot be undone - use with caution
+- Prompts for confirmation before deletion
+- Shows contact details before deleting
+- Cannot be undone - use carefully
+
+---
 
 ## 🆘 Help System
 
-Every command has comprehensive help documentation:
+Every command has comprehensive help documentation built-in:
 
 ```bash
 # General CLI help
 email-cli --help
+email-cli -h
 
-# Command-specific help
-email-send --help
-esend --help
-eread -h
-cadd --help
+# Basic command help
+email-send --help          # Send email help
+list --help               # List emails help  
+email-read --help         # Read email help
+email-reply --help        # Reply help
 
-# Help works with both aliases
-email-search --help
-esearch --help
+# Advanced command help
+email-attach --help       # Attachment help
+email-forward --help      # Forward help
+email-search --help       # Search help
+
+# Contact management help
+contact-add --help        # Add contact help
+contact-list --help       # List contacts help
+contact-search --help     # Search contacts help
+
+# Help works with all aliases
+esend -h                  # Same as email-send --help
+eread --help             # Same as email-read --help
+cadd -h                  # Same as contact-add --help
 ```
 
 **Help Information Includes:**
-- Command usage syntax
-- Argument descriptions  
-- Available options/flags
-- Practical examples
-- Related commands
+- ✅ Command usage syntax and examples
+- 📝 Detailed argument descriptions  
+- 🔧 Available options and flags
+- 💡 Practical usage examples
+- 🔗 Related commands and workflows
+- ⚠️ Important notes and limitations
 
 ## 🎨 CLI Features
 
@@ -495,39 +725,82 @@ esearch --help
 
 ### Daily Email Workflow
 ```bash
-# Morning email check
-eread 10
-estats
+# 1. Morning email check
+list --unread              # See unread emails
+list 10                    # Show latest 10 emails
+email-stats               # Get inbox statistics
 
-# Send project update
+# 2. Read important emails  
+email-read 1              # Read newest email
+eread --id email_12345    # Read specific email
+
+# 3. Send quick updates
 esend "team@company.com" "Daily Standup" "Today's priorities and blockers"
+esend "boss@company.com" "Status Update" "Project on track, will deliver by Friday"
 
-# Follow up on important emails
-esearch --from "boss@company.com" --seen false
+# 4. Follow up on important emails
+esearch --from "client@company.com" --unread
+esearch --subject "urgent" --since "today"
 ```
 
-### Contact Management Workflow
+### Contact Management Workflow  
 ```bash
-# Add new business contact
+# 1. Add new business contacts
 cadd "Jane Smith" "jane@newclient.com" "clients"
+contact-add "John Developer" "john.dev@company.com" "developers" "+1-555-0199"
 
-# Organize existing contacts
-clist                        # See all contacts
-cgroup "work"               # Check work contacts
-cupdate contact_123 group "vip"  # Promote important contact
+# 2. Organize and manage contacts
+contact-list              # See all contacts
+cgroup "work"             # Check work contacts  
+csearch "gmail.com"       # Find Gmail contacts
+csearch "manager"         # Search by role/name
+
+# 3. Update contact information
+cupdate contact_123 group "vip"           # Promote to VIP
+contact-update contact_456 phone "+1-555-0200"  # Update phone
+cupdate contact_789 email "newemail@company.com"  # Update email
 ```
 
 ### Advanced Email Operations
 ```bash
-# Schedule weekly report
-eschedule "management@company.com" "Weekly Report" "Automated weekly summary" "+1w"
+# 1. Handle attachments
+email-attach "client@company.com" "Contract Review" "Please review attached contract" "contract.pdf"
+eattach "team@company.com" "Resources" "Meeting materials" "agenda.pdf,slides.ppt,notes.txt"
 
-# Send newsletter to subscribers
-ebulk newsletter-subscribers.txt "Monthly Update" "Our latest news and updates"
+# 2. Email management and organization
+esearch --subject "invoice" --since "2024-01-01"    # Find invoices
+esearch --from "support@" --unread                  # Unread support emails
+email-forward 12345 "accounting@company.com" "Please process this invoice"
 
-# Search and organize emails
-esearch --subject "invoice" --since "2024-10-01"
-eforward 12345 "accounting@company.com" "Please process this invoice"
+# 3. Bulk operations (when available)
+ebulk newsletter-list.txt "Monthly Update" "Our latest news and updates"
+email-bulk subscribers.txt "Product Launch" "Exciting new features available!"
+
+# 4. Advanced search and filtering
+esearch --subject "meeting" --since "last week"     # Recent meeting emails
+esearch --has-attachment --from "@company.com"      # Company emails with files
+esearch --flagged --priority high                   # Important flagged emails
+```
+
+### Complete Project Communication Workflow
+```bash
+# 1. Setup project contacts
+cadd "Project Manager" "pm@client.com" "project-alpha"
+cadd "Lead Developer" "lead@team.com" "project-alpha"  
+cadd "Client Stakeholder" "stakeholder@client.com" "project-alpha"
+
+# 2. Daily project communication
+esend "pm@client.com,lead@team.com" "Daily Update" "Progress report and next steps"
+eattach "stakeholder@client.com" "Weekly Report" "Status update" "report.pdf,metrics.xlsx"
+
+# 3. Follow project communications
+cgroup "project-alpha"                    # View project team
+esearch --from "@client.com" --unread    # Check client messages
+esearch --subject "project-alpha" --since "this week"  # Project emails
+
+# 4. Handle project issues
+email-reply 54321 "Re: Bug Report" "Fix deployed, please verify on your end"
+eforward 67890 "dev-team@company.com" "Please investigate this issue ASAP"
 ```
 
 ## ⚠️ Important Notes
@@ -539,15 +812,30 @@ eforward 12345 "accounting@company.com" "Please process this invoice"
 4. **Rate Limiting**: Respect email provider limits for bulk operations
 
 ### **Best Practices**
-1. **Test First**: Use small batches for bulk operations
-2. **Backup Contacts**: Export contact lists regularly
-3. **Monitor Quotas**: Check email provider limits and usage
-4. **Error Handling**: Read error messages for troubleshooting guidance
+1. **Test Small**: Use small batches for bulk operations before scaling up
+2. **Backup Regularly**: Export contact lists and important emails  
+3. **Monitor Limits**: Check email provider quotas and daily sending limits
+4. **Read Errors**: Error messages contain troubleshooting guidance
+5. **Use Aliases**: Short commands (`esend`) are faster for frequent use
+6. **Group Contacts**: Organize contacts by project/role for easier management
 
-### **File Management**
-1. **Attachments**: Use absolute paths, check file sizes (25MB limit)
-2. **Bulk Lists**: Use plain text files with one email per line
-3. **Permissions**: Ensure CLI has read access to attachment files
+### **File Management**  
+1. **Attachments**: 
+   - Use absolute file paths: `/home/user/documents/file.pdf`
+   - Check file sizes (most providers limit 25MB per attachment)
+   - Multiple attachments: `file1.pdf,file2.doc,file3.xlsx`
+   
+2. **Bulk Email Lists**:
+   - Use plain text files with one email per line
+   - Format: `recipient@example.com` (one per line)
+   - Remove duplicates and invalid emails before bulk sending
+
+### **Command Limitations**
+1. **email-send**: Maximum 3 recipients (use `email-bulk` for more)
+2. **email-attach**: Unlimited attachments (comma-separated)  
+3. **Rate Limits**: Most providers limit daily sending (check your provider)
+4. **Search Scope**: Search limited to accessible IMAP folders
+5. **File Permissions**: Ensure CLI has read access to attachment files
 
 ## 🔗 Additional Resources
 
@@ -581,5 +869,30 @@ eforward 12345 "accounting@company.com" "Please process this invoice"
    ```bash
    esend "client@example.com" "Weekly Check-in" "$(cat templates/weekly-checkin.txt)"
    ```
+
+---
+
+## 🎯 Summary
+
+This Email MCP Server CLI provides **40+ commands** with comprehensive email and contact management capabilities. Key features:
+
+### ✅ **Core Functionality**
+- **Email Operations**: Send (max 3 recipients), read, reply, forward, search
+- **Attachments**: Unlimited files with custom naming via `email-attach`
+- **Contact Management**: Add, list, search, update, delete, group contacts  
+- **Advanced Features**: Bulk operations, scheduling, filtering, statistics
+
+### ✅ **User Experience**
+- **Dual Command Aliases**: Short (`esend`) and descriptive (`email-send`)
+- **Cross-Platform**: Works on Windows, macOS, Linux
+- **Comprehensive Help**: Every command has detailed `--help` documentation
+- **Smart Error Handling**: Clear error messages with solution guidance
+
+### ✅ **Enhanced Commands**
+- **`list`**: Renamed from `email-list` for clarity as custom command
+- **`email-send`**: Limited to 3 recipients (suggests `email-bulk` for more)
+- **`email-attach`**: Supports unlimited comma-separated attachments
+
+Start with `email-cli --help` and explore individual command help with `--help` flag. Happy emailing! 📧
 
 This CLI provides professional-grade email management capabilities suitable for individual users, small teams, and automated workflows.

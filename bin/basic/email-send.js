@@ -30,6 +30,7 @@ async function main() {
             [
                 'email-send user@example.com Hello "This is a test message"',
                 'esend user1@example.com,user2@example.com Meeting "Team meeting at 3 PM"',
+                'email-send user1@example.com,user2@example.com,user3@example.com "Multiple Recipients" "Message to 3 people"',
                 'email-send user@example.com "HTML Email" "Plain text" "<h1>HTML Content</h1>"'
             ],
             [
@@ -65,17 +66,31 @@ async function main() {
         
         const [to, subject, body, html] = args;
 
+        // Validate recipient count (max 3 for email-send)
+        const recipients = to.split(',').map(email => email.trim()).filter(email => email.length > 0);
+        
+        if (recipients.length > 3) {
+            console.error(chalk.red('❌ Error: Too many recipients'));
+            console.error(chalk.yellow('📧 email-send supports maximum 3 recipients'));
+            console.error(chalk.blue('💡 For sending to more recipients, use: email-bulk'));
+            console.error(chalk.gray('Example: email-bulk recipients.txt "Subject" "Body"'));
+            process.exit(1);
+        }
+
         // Send email
-        spinner.start('Sending email...');
-        const result = await emailService.sendEmail(to, subject, body, html);
+        spinner.start(`Sending email to ${recipients.length} recipient${recipients.length > 1 ? 's' : ''}...`);
+        const result = await emailService.sendEmail(recipients.join(','), subject, body, html);
         spinner.succeed('Email sent successfully');
 
         console.log(chalk.green('✅ Email sent successfully!'));
-        console.log(chalk.cyan(`📧 To: ${to}`));
+        console.log(chalk.cyan(`📧 To: ${recipients.join(', ')}`));
         console.log(chalk.cyan(`📝 Subject: ${subject}`));
         console.log(chalk.gray(`📄 Body: ${body.substring(0, 50)}${body.length > 50 ? '...' : ''}`));
         if (html) {
             console.log(chalk.blue('🌐 HTML content included'));
+        }
+        if (recipients.length > 1) {
+            console.log(chalk.dim(`📊 Sent to ${recipients.length} recipients`));
         }
         
     } catch (error) {

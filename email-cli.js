@@ -156,10 +156,9 @@ const commands = {
   'contact-delete': 'contacts/contact-delete.js',
   'cdelete': 'contacts/contact-delete.js',
   
-  // Utility Commands
-  'email-list': 'basic/email-list.js',
-  'elist': 'basic/email-list.js',
-  'list': 'basic/email-list.js'
+  // Utility Commands  
+  'list': 'basic/list.js',
+  'email-cli': null // Special case - handled in main function
 };
 
 async function main() {
@@ -169,6 +168,12 @@ async function main() {
   
   // If called as email-cli.js, get command from arguments
   if (commandName === 'email-cli.js' || commandName === 'email-cli') {
+    // Handle version flag
+    if (args.includes('--version') || args.includes('-v')) {
+      showVersion();
+      return;
+    }
+    
     if (args.length === 0 || (args.includes('--help') || args.includes('-h')) && args.length === 1) {
       showUsage();
       return;
@@ -177,8 +182,23 @@ async function main() {
     commandArgs = args.slice(1);
   }
 
+  // Handle special email-cli command
+  if (command === 'email-cli') {
+    if (commandArgs.includes('--version') || commandArgs.includes('-v')) {
+      showVersion();
+      return;
+    } else if (commandArgs.includes('--help') || commandArgs.includes('-h') || commandArgs.length === 0) {
+      showUsage();
+      return;
+    } else {
+      console.error(chalk.red.bold(`❌ Unknown option for email-cli: ${commandArgs[0]}`));
+      console.log(chalk.yellow('💡 Use --help or --version'));
+      process.exit(1);
+    }
+  }
+
   // Handle direct command execution (when called as the command itself)
-  if (commands[command]) {
+  if (commands[command] && commands[command] !== null) {
     // Display current user email (except for help commands)
     if (!commandArgs.includes('--help') && !commandArgs.includes('-h')) {
       displayCurrentUser();
@@ -225,6 +245,23 @@ async function main() {
   }
 }
 
+function showVersion() {
+  // Read version from package.json
+  try {
+    const packagePath = path.join(__dirname, 'package.json');
+    const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+    console.log(chalk.bold.cyan('📧 Email MCP Server CLI'));
+    console.log(chalk.gray(`Version: ${chalk.white(packageJson.version)}`));
+    console.log(chalk.gray(`Package: ${chalk.white(packageJson.name)}`));
+    console.log();
+    console.log(chalk.dim('A powerful command-line interface for email operations'));
+    console.log(chalk.dim('Use --help to see available commands'));
+  } catch (error) {
+    console.log(chalk.bold.cyan('📧 Email MCP Server CLI'));
+    console.log(chalk.red('Version information not available'));
+  }
+}
+
 function showUsage() {
   console.log();
   console.log(chalk.bold.cyan('📧 Email MCP CLI') + chalk.gray(' - ') + chalk.bold.white('Email Operations Suite'));
@@ -260,11 +297,14 @@ function showUsage() {
   console.log();
   
   console.log(chalk.bold.blue('Utility Commands:'));
-  console.log(chalk.cyan('  email-list, elist, list    Show all available commands'));
+  console.log(chalk.cyan('  list                       Show recent emails (renamed from email-list)'));
+  console.log(chalk.cyan('  email-cli                  Show this help or version'));
   console.log();
   
   console.log(chalk.bold.yellow('Usage:'));
   console.log(chalk.blue('  email-cli <command> [arguments]'));
+  console.log(chalk.blue('  email-cli --version') + chalk.gray('        Show version information'));
+  console.log(chalk.blue('  email-cli --help') + chalk.gray('           Show this help message'));
   console.log(chalk.blue('  <command> --help') + chalk.gray('           Show help for specific command'));
   console.log();
 }

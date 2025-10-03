@@ -5,19 +5,32 @@ This folder contains CLI commands for basic email operations. These are the most
 ## Available Commands
 
 ### 📤 Email Send (`email-send.js` / `esend`)
-Send a simple email to one or more recipients.
+Send a simple email to up to 3 recipients (for more recipients, use `email-bulk`).
 
 **Usage:**
 ```bash
-email-send <to> <subject> <body>
-esend <to> <subject> <body>
+email-send <to> <subject> <body> [html]
+esend <to> <subject> <body> [html]
 ```
+
+**Recipients:** Maximum 3 recipients (comma-separated)
 
 **Examples:**
 ```bash
+# Single recipient
 email-send "user@example.com" "Hello" "This is a test message"
-esend "team@company.com" "Meeting" "Team meeting at 2 PM today"
+
+# Multiple recipients (up to 3)
+email-send "user1@example.com,user2@example.com,user3@example.com" "Team Update" "Meeting at 2 PM today"
+
+# With HTML content
+email-send "user@example.com" "HTML Email" "Plain text" "<h1>HTML Content</h1>"
+
+# Short alias
+esend "team@company.com" "Meeting" "Team meeting reminder"
 ```
+
+**Note:** For more than 3 recipients, use the `email-bulk` command instead.
 
 ### 📬 Email Read (`email-read.js` / `eread`)
 Read recent emails from your inbox.
@@ -79,15 +92,35 @@ email-mark-read 12345 true     # Mark as read
 emarkread 67890 false         # Mark as unread
 ```
 
+### 📋 List Commands (`list.js`)
+Display all available CLI commands with their aliases and descriptions.
+
+**Usage:**
+```bash
+list
+```
+
+**Examples:**
+```bash
+list                          # Show all available commands
+```
+
+**Features:**
+- Shows all email operations (basic and advanced)
+- Shows all contact management commands  
+- Displays both full names and short aliases
+- Organized by category for easy reference
+
 ## Quick Reference
 
 | Command | Short Alias | Description |
 |---------|-------------|-------------|
-| `email-send` | `esend` | Send an email |
+| `email-send` | `esend` | Send an email (max 3 recipients) |
 | `email-read` | `eread` | Read recent emails |
 | `email-get` | `eget` | Get specific email |
 | `email-delete` | `edelete` | Delete an email |
 | `email-mark-read` | `emarkread` | Mark email read/unread |
+| `list` | - | Show all available commands |
 
 ## Getting Help
 
