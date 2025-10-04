@@ -1197,12 +1197,16 @@ email-schedule "hr@company.com" "Reminder" "Deadline reminder" "2024-12-25T08:00
 - Relative: `+1h` (1 hour), `+30m` (30 min), `+1d` (1 day), `+1w` (1 week)
 
 ### 📤 Bulk Send (`email-bulk` / `ebulk`)
-Send personalized emails to multiple recipients from a file.
+Send personalized emails to multiple recipients from a file or comma-separated list.
 
 ```bash
 # Send to recipients from file
 email-bulk recipients.txt "Newsletter" "Monthly company newsletter content"
 ebulk team-emails.txt "Meeting Reminder" "Team meeting tomorrow at 2 PM"
+
+# Send to comma-separated email addresses (no quotes needed)
+email-bulk user1@example.com,user2@example.com,user3@example.com "Update" "Important announcement"
+ebulk alice@company.com,bob@company.com,charlie@company.com "Meeting" "Team meeting at 3 PM"
 
 # With custom recipient file
 ebulk ./contacts/vip-clients.txt "Important Update" "Exclusive client update"
@@ -1216,11 +1220,26 @@ client@important.com
 team@startup.com
 ```
 
+**Comma-Separated Format:**
+```bash
+# No spaces around commas (optional)
+user1@example.com,user2@example.com,user3@example.com
+
+# Spaces around commas (also supported)  
+user1@example.com, user2@example.com, user3@example.com
+```
+
+**Input Methods:**
+- **File Input**: Text file with one email per line
+- **Comma-Separated**: Direct email list in command (no quotes needed)
+- **Auto-Detection**: Automatically detects input type based on @ symbol presence
+
 **Features:**
 - Progress tracking for large lists
 - Error handling for invalid emails
 - Delivery confirmation reporting
 - Rate limiting to avoid spam filters
+- Flexible input: supports both file and direct email list
 
 ## 👥 Contact Management
 
