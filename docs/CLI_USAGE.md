@@ -10,10 +10,6 @@ email-cli [subcommand] [options]
 
 - setup [--force|-f] [--mask|--no-mask] [--use-keychain] [--test-send]
    - Run interactive setup to configure EMAIL_USER and EMAIL_PASS, attempt SMTP/IMAP auto-detection and verification, and persist recommended settings.
-
-- diagnose <user@domain>
-   - Run diagnostics for the domain portion of an email address (MX lookup + SMTP port probes).
-
 - update
    - Update the installed package to the latest version (uses npm/pnpm).
 
@@ -37,11 +33,14 @@ Mask password input and store in OS keychain (if available):
 email-cli setup --mask --use-keychain --test-send
 ```
 
-Run a diagnose for an account domain:
+Non-interactive / CI example (provide credentials from environment or CI secrets):
 
 ```bash
-email-cli diagnose alice@example.com
+# prefer using CI secrets or environment variables for EMAIL_PASS
+email-cli setup --email-user ci-bot@example.com --email-pass "$CI_EMAIL_PASS" --ci --use-keychain --profile default
 ```
+
+For full command documentation see `docs/commands.md` or run `email-cli --help` which prints the full commands reference.
 
 For full command documentation see `docs/commands.md`.
 
@@ -61,63 +60,63 @@ sudo ln -sf "$(pwd)/email-cli.js" /usr/local/bin/contact-list
 **Windows (Local Development):**
 ```cmd
 # Run as Administrator in project directory
-cd email-mcp-server
+# email-cli — top-level usage
 
-# Create batch files for convenience
-echo @echo off > email-send.bat
-echo node "%~dp0email-cli.js" email-send %* >> email-send.bat
+This file documents only the top-level `email-cli` helper and installer commands. For full command documentation run `email-cli --help` or see `docs/commands.md`.
 
-echo @echo off > esend.bat  
-echo node "%~dp0email-cli.js" email-send %* >> esend.bat
+## Synopsis
 
-echo @echo off > list.bat
-echo node "%~dp0email-cli.js" list %* >> list.bat
+email-cli [subcommand] [options]
 
-# Add project directory to PATH
-setx PATH "%PATH%;%CD%"
-```
+## Top-level subcommands
 
-### 🔍 Verify Installation
+- setup
+   - Configure credentials and SMTP/IMAP settings. Supports interactive and non-interactive modes.
 
-Test your installation with these commands:
+- update
+   - Update the installed package to the latest version.
+
+- help, -h
+   - Show this usage information. Running `email-cli --help` with no other arguments prints the full `docs/commands.md` reference.
+
+- --version, -v
+   - Print CLI and package version information.
+
+## Global flags (supported by `email-cli` and `email-cli setup`)
+
+- `--profile <name>` — store/load settings under a named profile (future multi-profile support).
+- `--ci`, `--non-interactive` — run non-interactively; requires `--email-user` and `--email-pass` to be provided or set via environment variables.
+- `--email-user <user>` — provide EMAIL_USER non-interactively.
+- `--email-pass <pass>` — provide EMAIL_PASS non-interactively (prefer CI secrets; avoid shell history).
+
+## Setup flags
+
+- `--mask` — mask password input in interactive prompts.
+- `--use-keychain` — attempt to store password in OS keyring (uses `keytar` when available). If successful, the CLI will avoid leaving the password in local files.
+- `--test-send` — after verification, send a small test email to confirm end-to-end capability.
+- `--force`, `-f` — overwrite existing persisted settings.
+
+## Examples
+
+Interactive setup:
 
 ```bash
-# Check if CLI is available
-email-cli --version
-email-cli --help
-
-# Test basic commands
-esend --help              # Should show email-send help
-list --help               # Should show list help  
-cadd --help               # Should show contact-add help
-
-# Test actual functionality (after .env setup)
-email-stats               # Should show inbox statistics
-contact-list              # Should show contact list (may be empty)
-list 1                    # Should show latest email
+email-cli setup
 ```
 
-### 📋 Installation Troubleshooting
+Masked interactive setup with keychain storage:
 
-#### Command Not Found
 ```bash
-# Check if globally installed
-npm list -g @0xshariq/email-mcp-server
-
-# Check PATH includes npm global bin
-echo $PATH | grep npm
-
-# Reinstall if needed
-npm uninstall -g @0xshariq/email-mcp-server
-npm install -g @0xshariq/email-mcp-server
+email-cli setup --mask --use-keychain --test-send
 ```
 
-#### Permission Issues (Linux/macOS)
-```bash
-# Fix npm global permissions
-sudo chown -R $(whoami) $(npm config get prefix)/{lib/node_modules,bin,share}
+Non-interactive / CI example:
 
-# Or use npm prefix for user directory
+```bash
+email-cli setup --email-user ci-bot@example.com --email-pass "$CI_EMAIL_PASS" --ci --use-keychain --profile default
+```
+
+For full command documentation, see `docs/commands.md` or run `email-cli --help`.
 npm config set prefix ~/.local
 export PATH=~/.local/bin:$PATH
 ```
@@ -152,258 +151,64 @@ Email MCP Server can be used in two ways with different configuration approaches
 
 ## 🏠 **Local Development Setup (EASY)**
 
-Perfect for development, testing, or project-specific use. Uses `.env` file - works on all platforms!
+# email-cli — top-level usage
 
-### **Step 1: Clone/Download Project**
+This file documents only the top-level `email-cli` helper and installer commands. Full command reference (send, bulk, attach, contacts, etc.) lives in `docs/commands.md` and is printed by `email-cli --help`.
+
+## Synopsis
+
+email-cli [subcommand] [options]
+
+## Top-level subcommands
+
+- setup [--force|-f] [--mask] [--use-keychain] [--test-send]
+  - Run interactive setup to configure EMAIL_USER and EMAIL_PASS, attempt SMTP/IMAP auto-detection and verification, and persist recommended settings.
+
+- update
+  - Update the installed package to the latest version (uses npm/pnpm).
+
+- help, -h
+  - Show this usage information or run `email-cli --help` with no args to print the full `docs/commands.md` reference.
+
+- --version, -v
+  - Print CLI and package version information.
+
+## Global flags (supported by `email-cli` and `email-cli setup`)
+
+- `--profile <name>` — (future multi-profile) save/apply settings under a named profile.
+- `--ci`, `--non-interactive` — run non-interactively; requires `--email-user` and `--email-pass` to be provided or set via environment variables.
+- `--email-user <user>` — provide EMAIL_USER non-interactively.
+- `--email-pass <pass>` — provide EMAIL_PASS non-interactively (be careful with shell history; prefer CI secrets).
+
+## Setup flags (interactive or non-interactive)
+
+- `--mask` — mask password input during interactive prompt.
+- `--use-keychain` — attempt to store password securely in the OS keychain (uses `keytar` if available). On success the CLI will avoid leaving the password in local files.
+- `--test-send` — after verification, send a small test email to confirm end-to-end send capability.
+- `--force`, `-f` — overwrite existing persisted settings.
+
+## Examples
+
+Interactive setup (visible password by default):
+
 ```bash
-git clone https://github.com/0xshariq/email-mcp-server.git
-cd email-mcp-server
-npm install
-npm run build
-```
-
-### **Step 2: Create .env File**
-```bash
-# Linux/macOS
-cp .env.example .env
-
-# Windows Command Prompt  
-copy .env.example .env
-
-# Windows PowerShell
-Copy-Item .env.example .env
-```
-
-### ⚙️ Quick Setup Command
-
-After installing the CLI you can run a guided setup to configure your account credentials. The CLI will try to automatically persist recommended environment variables first — if the automatic step fails the docs below explain how to set them manually.
-
-Run the interactive setup:
-
-```bash
-# Interactive setup - prompts for your email and app password
 email-cli setup
 ```
 
-Auto-setup behavior (priority):
-- The installer/post-install tries to persist recommended defaults (SMTP/IMAP/timeouts) for global installs.
-- The `email-cli setup` command attempts to persist `EMAIL_USER` and `EMAIL_PASS` automatically:
-   - If installed locally (development), it writes them to the package `.env` file.
-   - If installed globally, it will attempt OS-level persistence (Windows: `setx`, Unix: append to shell profile or create a sourced file).
-
-SMTP verification and accuracy:
-- The setup command attempts to auto-detect SMTP/IMAP server, port, and secure settings and then verify credentials by connecting to the SMTP service. This uses a best-effort strategy (provider heuristics + common hostnames/ports).
-- Expected accuracy: ~90-99% for major providers (Gmail, Outlook, Yahoo, iCloud) and common custom domains. Some providers may require special configuration (app passwords, 2FA, or custom ports) where auto-detection can fail.
-- If auto-detection fails the setup still saves `EMAIL_USER` and `EMAIL_PASS` and prints manual steps to finish setup.
-
-Force and validation options:
-- You can force persistence even when values exist by running:
+Masked password input and store in OS keychain (if available):
 
 ```bash
-email-cli setup --force
-# or
-email-cli setup -f
+email-cli setup --mask --use-keychain --test-send
 ```
 
-The `--force` flag attempts to overwrite user-level environment variables (where permitted).
-
-Troubleshooting & reliability:
-- The automatic verification will try multiple hostnames, ports (587, 465, 25, 2525), and secure modes, and includes retries/backoff to improve success rate.
-- If verification repeatedly fails for your provider, try the manual fallback steps. Common reasons for failure:
-   - Provider requires an app-specific password (Gmail/Google accounts with 2FA)
-   - Provider blocks SMTP from unknown IPs or requires special port settings
-   - Network/firewall restrictions on SMTP ports (25/465/587)
-
-If you're uncertain, creating a `.env` file locally (development) is the safest first step; you can then fine-tune SMTP settings and re-run `email-cli setup --force`.
-
-If automatic persistence fails, follow the manual steps below for your OS.
-
-Security note: Storing credentials in environment variables is convenient but treat them as secrets. Do not commit `.env` to version control. Prefer using App Passwords (Gmail) rather than your main account password.
-
-Manual fallback - Windows (PowerShell):
-
-```powershell
-# Set user-level environment variables (persisted for future sessions)
-setx EMAIL_USER "your-email@gmail.com"
-setx EMAIL_PASS "your-app-password"
-
-# After running setx, close and reopen your terminal for changes to take effect
-```
-
-Manual fallback - Linux / macOS (bash or zsh):
+Non-interactive / CI example (provide credentials from environment or CI secrets):
 
 ```bash
-# Add to your shell profile (example for bash)
-echo 'export EMAIL_USER="your-email@gmail.com"' >> ~/.bashrc
-echo 'export EMAIL_PASS="your-app-password"' >> ~/.bashrc
-source ~/.bashrc
-
-# For zsh use ~/.zshrc instead of ~/.bashrc
+# prefer using CI secrets or environment variables for EMAIL_PASS
+email-cli setup --email-user ci-bot@example.com --email-pass "$CI_EMAIL_PASS" --ci --use-keychain --profile default
 ```
 
-If you prefer not to set system environment variables, edit the project's `.env` file (local development):
-
-```bash
-cp .env.example .env
-# edit .env and set:
-# EMAIL_USER=your-email@gmail.com
-# EMAIL_PASS=your-app-password
-```
-
-
-### **Step 3: Configure .env File**
-Edit the `.env` file with your email settings:
-```env
-# Gmail Configuration (most common)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_SECURE=false
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASS=your-app-password  # Use App Password for Gmail!
-
-IMAP_HOST=imap.gmail.com
-IMAP_PORT=993
-IMAP_TLS=true
-IMAP_MARK_SEEN=false
-```
-
-### **Step 4: Use Commands**
-```bash
-# All commands work with node prefix
-node email-cli.js --version
-node email-cli.js                    # List emails
-node email-cli.js email-send "user@example.com" "Subject" "Body"
-node email-cli.js email-stats
-
-# Create shortcuts (optional)
-# Linux/macOS: alias esend="node email-cli.js email-send"
-# Windows: Create .bat files or use doskey
-```
-
-**✅ Local Development Benefits:**
-- ✅ Easy setup - just edit one file
-- ✅ Works on all platforms identically  
-- ✅ Project-specific configuration
-- ✅ No system-wide changes needed
-- ✅ Perfect for development and testing
-
----
-
-## 🌍 **Global Installation Setup (COMPLEX)**
-
-For system-wide access to commands. Requires setting system environment variables.
-
-### **Step 1: Install Globally**
-```bash
-npm install -g @0xshariq/email-mcp-server
-```
-
-### **Step 2: Fix Windows PATH Issues (Windows Only)**
-Windows often has PATH issues with global npm packages:
-
-**🔥 Administrator Method (BEST FIX):**
-```powershell
-# 1. Right-click PowerShell → "Run as Administrator"
-# 2. Check npm global directory
-npm config get prefix
-
-# 3. Add to system PATH (Machine-level)
-$npmPath = npm config get prefix  
-[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";" + $npmPath, "Machine")
-
-# 4. Close admin PowerShell, test in regular PowerShell
-email-cli --version
-```
-
-**Alternative Methods:**
-```powershell
-# Quick test - check if commands are available
-email-cli --version
-
-# Workaround - use npx (always works)
-npx @0xshariq/email-mcp-server email-cli --version
-
-# User-level PATH fix (less reliable)
-$npmPath = npm config get prefix
-[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";" + $npmPath, "User")
-```
-
-### **Step 3: Configure System Environment Variables**
-
-⚠️ **Complex Part:** Environment variable setup differs by platform and requires system-level changes.
-
-**Choose your platform:**
-
-#### **🐧 Linux/macOS/WSL (Bash/Zsh)**
-```bash
-# Temporary (current session only)
-export SMTP_HOST="smtp.gmail.com"
-export SMTP_PORT="587"
-export SMTP_SECURE="false"
-export EMAIL_USER="your-email@gmail.com"
-export EMAIL_PASS="your-app-password"
-export IMAP_HOST="imap.gmail.com"
-export IMAP_PORT="993"
-export IMAP_TLS="true"
-export SMTP_REJECT_UNAUTHORIZED=false
-export IMAP_REJECT_UNAUTHORIZED=false
-export IMAP_CONN_TIMEOUT=60000
-export IMAP_AUTH_TIMEOUT=30000
-
-# Permanent setup (add to ~/.bashrc or ~/.zshrc)
-echo 'export SMTP_HOST="smtp.gmail.com"' >> ~/.bashrc
-echo 'export SMTP_PORT="587"' >> ~/.bashrc
-echo 'export SMTP_SECURE="false"' >> ~/.bashrc
-echo 'export EMAIL_USER="your-email@gmail.com"' >> ~/.bashrc
-echo 'export EMAIL_PASS="your-app-password"' >> ~/.bashrc
-echo 'export IMAP_HOST="imap.gmail.com"' >> ~/.bashrc
-echo 'export IMAP_PORT="993"' >> ~/.bashrc
-echo 'export IMAP_TLS="true"' >> ~/.bashrc
-echo 'export SMTP_REJECT_UNAUTHORIZED="false"' >> ~/.bashrc
-echo 'export IMAP_REJECT_UNAUTHORIZED="false"' >> ~/.bashrc
-echo 'export IMAP_CONN_TIMEOUT="60000"' >> ~/.bashrc
-echo 'export IMAP_AUTH_TIMEOUT="60000"' >> ~/.bashrc
-
-# Reload shell configuration
-source ~/.bashrc  # or source ~/.zshrc
-```
-
-#### **🪟 Windows PowerShell**
-
-**🔥 Method 1: Administrator PowerShell (RECOMMENDED)**
-
-Right-click PowerShell → "Run as Administrator", then:
-
-```powershell
-# Permanent setup (Machine-level) - BEST FOR GLOBAL CLI
-[Environment]::SetEnvironmentVariable("SMTP_HOST", "smtp.gmail.com", "Machine")
-[Environment]::SetEnvironmentVariable("SMTP_PORT", "587", "Machine")
-[Environment]::SetEnvironmentVariable("SMTP_SECURE", "false", "Machine")
-[Environment]::SetEnvironmentVariable("EMAIL_USER", "your-email@gmail.com", "Machine")
-[Environment]::SetEnvironmentVariable("EMAIL_PASS", "your-app-password", "Machine")
-[Environment]::SetEnvironmentVariable("IMAP_HOST", "imap.gmail.com", "Machine")
-[Environment]::SetEnvironmentVariable("IMAP_PORT", "993", "Machine")
-[Environment]::SetEnvironmentVariable("IMAP_TLS", "true", "Machine")
-[Environment]::SetEnvironmentVariable("IMAP_TLS", "true", "Machine")
-[Environment]::SetEnvironmentVariable("SMTP_REJECT_UNAUTHORIZED", "false", "Machine")
-[Environment]::SetEnvironmentVariable("IMAP_REJECT_UNAUTHORIZED", "false", "Machine")
-[Environment]::SetEnvironmentVariable("IMAP_CONN_TIMEOUT", "60000", "Machine")
-[Environment]::SetEnvironmentVariable("IMAP_AUTH_TIMEOUT", "60000", "Machine")
-
-# Also add npm global path to system PATH (if needed)
-$npmPath = npm config get prefix
-[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";" + $npmPath, "Machine")
-
-# IMPORTANT: Close PowerShell and open NEW PowerShell window (not as admin)
-# Test with: $env:EMAIL_USER (should show your email)
-```
-
-**✅ Administrator Benefits:**
-- ✅ **System-wide access** - Works for ALL users and applications
-- ✅ **More persistent** - Survives user profile changes  
-- ✅ **Perfect for global CLI** - Ideal for npm global packages
-- ✅ **Professional setup** - Production-ready configuration
-- ✅ **No permission issues** - Bypasses user-level restrictions
+For full command documentation see `docs/commands.md` or run `email-cli --help`.
 
 **🔧 Method 2: Regular PowerShell (User-level)**
 

@@ -1,6 +1,52 @@
 # Email MCP Server — Commands Reference
 
-This document lists all commands provided by the project, grouped by category. Each command includes a short purpose, a usage synopsis, options (when applicable), and examples. For top-level helper and installer commands see `docs/CLI_USAGE.md`.
+This document lists all commands provided by the project, grouped by category. Each command includes a short purpose, a usage synopsis, options (when applicable), and examples.
+
+## Setup (email-cli / email-cli setup)
+
+Purpose: Configure credentials and SMTP/IMAP settings for the CLI. The primary entrypoint is `email-cli` which also exposes a `setup` subcommand for guided or non-interactive configuration.
+
+Synopsis:
+
+```bash
+# interactive (guided)
+email-cli setup [--mask] [--use-keychain] [--test-send] [--force]
+
+# non-interactive (CI/scripting)
+email-cli setup --email-user <user@domain> --email-pass <password> [--use-keychain] [--profile <name>] [--ci|--non-interactive]
+```
+
+Global flags and behavior:
+
+- `--profile <name>` — Save or apply settings under a named profile (future multi-profile support). When provided, settings will be keyed by profile.
+- `--ci` or `--non-interactive` — Run non-interactively (suitable for CI); requires `--email-user` and `--email-pass` to be provided on the command line or via environment variables.
+
+Setup-specific flags:
+
+- `--mask` — Mask password input during interactive prompt (default: visible input unless requested).
+- `--use-keychain` — Attempt to store password securely in the OS keychain (requires `keytar` at runtime). If keytar is unavailable the CLI falls back to writing to the `.env` or `~/.email-mcp-env` as plaintext.
+- `--test-send` — After verifying credentials, send a tiny test email to a recipient you provide to confirm end-to-end capability.
+- `--force`, `-f` — Overwrite persisted settings if they already exist.
+- `--email-user <user>` — Supply EMAIL_USER non-interactively (useful with `--ci`).
+- `--email-pass <pass>` — Supply EMAIL_PASS non-interactively (useful with `--ci`).
+
+Notes:
+
+- Running `email-cli --help` will print the full `docs/commands.md` content for convenience.
+- When `--use-keychain` successfully stores the password in the keyring, the CLI will avoid leaving the password in local files. When keytar is not available, the CLI persists to `~/.email-mcp-env` and the local `.env` as a fallback.
+
+Examples:
+
+```bash
+# Interactive guided setup
+email-cli setup
+
+# Non-interactive CI-friendly setup (avoid hardcoding secrets in shell history - use CI secrets)
+email-cli setup --email-user ci-bot@example.com --email-pass "$CI_EMAIL_PASS" --ci --use-keychain --profile default
+
+# Interactive setup with masked input and keychain storage
+email-cli setup --mask --use-keychain --test-send
+```
 
 ## Basic commands
 
