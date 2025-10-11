@@ -122,6 +122,7 @@ async function main() {
 function showVersion() {
   // Read version from package.json
   try {
+    const __dirname = path.dirname(new URL(import.meta.url).pathname);
     const packagePath = path.join(__dirname, 'package.json');
     const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
     console.log(chalk.bold.cyan('📧 Email MCP Server CLI'));
