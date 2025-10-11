@@ -1,278 +1,53 @@
-# Email MCP Server CLI Commands
+# email-cli — top-level usage
 
-Complete guide for using the Email MCP Server CLI tools. The CLI provides comprehensive email management capabilities through both short and long command aliases.
+This file documents only the top-level `email-cli` helper and installer commands. Full command reference (send, bulk, attach, contacts, etc.) lives in `docs/commands.md`.
 
-## 🚨 Quick Fix for Windows "Unknown command" Errors
+## Synopsis
 
-If you're seeing errors like "Unknown command: email-send" on Windows:
+email-cli [subcommand] [options]
 
-### **Immediate Solutions (Work Right Away)**
+## Top-level subcommands
 
-#### **For npm Users:**
-```powershell
-# Use npx to run commands without PATH issues:
-npx @0xshariq/email-mcp-server email-cli --version
-npx @0xshariq/email-mcp-server email-cli update
-npx @0xshariq/email-mcp-server email-send "test@example.com" "Subject" "Body"
-```
+- setup [--force|-f] [--mask|--no-mask] [--use-keychain] [--test-send]
+   - Run interactive setup to configure EMAIL_USER and EMAIL_PASS, attempt SMTP/IMAP auto-detection and verification, and persist recommended settings.
 
-#### **For pnpm Users:**
-```powershell
-# Use pnpm exec to run commands:
-pnpm exec email-cli --version
-pnpm exec email-cli update
-pnpm exec email-send "test@example.com" "Subject" "Body"
+- diagnose <user@domain>
+   - Run diagnostics for the domain portion of an email address (MX lookup + SMTP port probes).
 
-# Or use npx as alternative:
-npx @0xshariq/email-mcp-server email-cli --version
-```
+- update
+   - Update the installed package to the latest version (uses npm/pnpm).
 
-### **Permanent Solutions (Administrator PowerShell + Restart)**
+- help, -h
+   - Show this usage information.
 
-#### **For npm Users:**
-```powershell
-# 1. Right-click PowerShell → "Run as Administrator"
-# 2. Add npm path to system PATH:
-$npmPath = npm config get prefix
-$currentPath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
-[Environment]::SetEnvironmentVariable("PATH", $currentPath + ";" + $npmPath, "Machine")
+- --version, -v
+   - Print CLI and package version information.
 
-# 3. Restart your computer
-# 4. Test: email-cli --version
-```
+## Examples
 
-#### **For pnpm Users:**
-```powershell
-# 1. Right-click PowerShell → "Run as Administrator"
-# 2. Get pnpm global directory and add to PATH:
-$pnpmRoot = pnpm root -g
-$pnpmBinPath = Split-Path $pnpmRoot -Parent
-$currentPath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
-[Environment]::SetEnvironmentVariable("PATH", $currentPath + ";" + $pnpmBinPath, "Machine")
-
-# 3. Restart your computer
-# 4. Test: email-cli --version
-```
-
-## 📦 Installation Guide
-
-### 🌍 Global Installation (Recommended)
-
-Install the Email MCP Server globally to use commands from anywhere on your system:
-
-#### **🤖 Fully Automated Installation**
-
-The Email MCP Server **automatically detects** installation type and runs appropriate setup:
-
-##### **🌐 Global Installation (System-wide CLI)**
-```bash
-# Automatic setup - detects -g flag and runs full setup:
-npm install -g @0xshariq/email-mcp-server
-pnpm install -g @0xshariq/email-mcp-server
-
-# What happens automatically:
-# ✅ Detects global installation (-g flag)
-# ✅ Runs platform-specific setup script  
-# ✅ Configures PATH for your OS
-# ✅ Creates all command symlinks
-# ✅ Tests installation
-# ✅ Provides setup guide
-```
-
-##### **📁 Local Installation (Development)**
-```bash
-# Automatic local setup - detects no -g flag:
-npm install @0xshariq/email-mcp-server
-git clone https://github.com/0xshariq/email-mcp-server.git && cd email-mcp-server && npm install
-
-# What happens automatically:
-# ✅ Detects local installation (no -g flag)
-# ✅ Creates .env configuration file
-# ✅ Provides local development instructions
-# ✅ Shows how to run commands locally
-```
-
-**✨ Smart Detection Features:**
-- 🔍 **Installation Type Detection** - Automatic -g flag detection
-- �️ **Platform Detection** - Windows, macOS, Linux (including WSL)  
-- 📦 **Package Manager Detection** - npm, pnpm, yarn
-- 🔗 **Symlink Creation** - All 40+ commands available (global only)
-- 🛣️ **PATH Configuration** - Automatic PATH setup (global only)
-- � **Environment Setup** - .env file creation (local only)
-- � **Installation Testing** - Verifies everything works
-
-#### **📦 Manual Installation**
-
-##### **Using npm:**
-```bash
-# Install globally via npm
-npm install -g @0xshariq/email-mcp-server
-
-# Verify installation
-email-cli --version
-esend --help
-```
-
-##### **Using pnpm:**
-```bash
-# Install globally via pnpm
-pnpm install -g @0xshariq/email-mcp-server
-
-# Verify installation
-pnpm exec email-cli --version
-pnpm exec esend --help
-
-# Or if PATH is configured:
-email-cli --version
-```
-
-#### **🖥️ Platform-Specific Installers**
-
-##### **Windows (PowerShell as Administrator):**
-```powershell
-# For pnpm users:
-curl -o install-pnpm-windows.ps1 https://raw.githubusercontent.com/0xshariq/email-mcp-server/main/install-pnpm-windows.ps1
-.\install-pnpm-windows.ps1
-
-# For npm users:
-curl -o install-windows.ps1 https://raw.githubusercontent.com/0xshariq/email-mcp-server/main/install-windows.ps1  
-.\install-windows.ps1
-```
-
-##### **Unix/Linux/macOS:**
-```bash
-# Download and run setup script
-curl -o setup-symlinks.sh https://raw.githubusercontent.com/0xshariq/email-mcp-server/main/setup-symlinks.sh
-chmod +x setup-symlinks.sh
-./setup-symlinks.sh
-```
-
-**✅ After global installation, all 40+ commands work directly:**
-```bash
-# Email operations
-email-send "user@example.com" "Subject" "Body"
-esend "user@example.com" "Subject" "Body"  
-eread 10
-list --unread
-
-# Contact management  
-cadd "John Doe" "john@example.com" "work"
-contact-list
-csearch "gmail.com"
-
-# All commands available system-wide!
-```
-
-### 🔄 **Installation Types Explained**
-
-#### **🌐 Global Installation (`-g` flag)**
-```bash
-npm install -g @0xshariq/email-mcp-server  # Global
-pnpm install -g @0xshariq/email-mcp-server # Global
-```
-
-**✅ What you get:**
-- **System-wide CLI access** - Commands work from any directory
-- **All 40+ command aliases** - `email-send`, `esend`, `email-read`, etc.
-- **Automatic symlinks** - No manual configuration needed
-- **PATH setup** - Automatic platform-specific configuration
-- **Environment variables** - System-level configuration (Windows) or shell profile (Unix)
-
-**🎯 Perfect for:** End users who want CLI tools available everywhere
-
-#### **📁 Local Installation (no `-g` flag)**  
-```bash
-npm install @0xshariq/email-mcp-server      # Local
-git clone <repo> && npm install             # Development
-```
-
-**✅ What you get:**
-- **Project-specific installation** - Commands via `node` prefix
-- **`.env` file configuration** - Automatic creation from template
-- **Development setup** - Full source code access
-- **Local commands** - `node email-cli.js`, `node bin/basic/email-send.js`
-- **Build tools** - TypeScript compilation, development scripts
-
-**🎯 Perfect for:** Developers, custom integrations, project-specific usage
-
-### 🔗 **Automatic Features**
-
-**Symlinks & PATH (Global Only):**
-- ✅ **No manual symlink creation needed**
-- ✅ **All 40+ command aliases work immediately**  
-- ✅ **Cross-platform compatibility**
-- ✅ **Automatic PATH configuration**
-
-**Environment Setup:**
-- 🌐 **Global:** System environment variables or shell profile
-- 📁 **Local:** `.env` file configuration (created automatically)
-
-The installation **automatically detects** which type you're doing and configures accordingly!
-
-### 🏠 Local Installation
-
-For development or project-specific usage:
+Interactive setup (visible password by default):
 
 ```bash
-# Clone repository
-git clone https://github.com/0xshariq/email-mcp-server.git
-cd email-mcp-server
-
-# Install dependencies
-npm install
-
-# Build TypeScript
-npm run build
-
-# Use with node prefix
-node email-cli.js email-send "user@example.com" "Subject" "Body"
-node email-cli.js list 5
-node email-cli.js cadd "Jane Doe" "jane@example.com"
+email-cli setup
 ```
 
-### 🔗 Symlink Setup
+Mask password input and store in OS keychain (if available):
 
-#### For Global Installation
-If global installation doesn't create symlinks automatically, set them up manually:
-
-**Windows (Run as Administrator):**
-```cmd
-# Navigate to global npm directory
-npm config get prefix
-cd %AppData%\npm
-
-# Create symlinks (example for key commands)
-mklink email-send.cmd node_modules\.bin\email-send.cmd
-mklink esend.cmd node_modules\.bin\esend.cmd
-mklink list.cmd node_modules\.bin\list.cmd
-```
-
-**macOS/Linux:**
 ```bash
-# Check global npm directory
-npm config get prefix
-
-# If symlinks missing, create manually
-sudo ln -sf $(npm config get prefix)/lib/node_modules/@0xshariq/email-mcp-server/email-cli.js /usr/local/bin/email-send
-sudo ln -sf $(npm config get prefix)/lib/node_modules/@0xshariq/email-mcp-server/email-cli.js /usr/local/bin/esend
-sudo ln -sf $(npm config get prefix)/lib/node_modules/@0xshariq/email-mcp-server/email-cli.js /usr/local/bin/list
-
-# Or use provided setup script
-chmod +x setup-symlinks.sh
-sudo ./setup-symlinks.sh
+email-cli setup --mask --use-keychain --test-send
 ```
 
-#### For Local Installation
-Create symlinks for local development convenience:
+Run a diagnose for an account domain:
 
-**macOS/Linux:**
 ```bash
-# Navigate to project directory
-cd email-mcp-server
+email-cli diagnose alice@example.com
+```
 
-# Make setup script executable and run
-chmod +x setup-symlinks.sh
-sudo ./setup-symlinks.sh
+For full command documentation see `docs/commands.md`.
+
+<!-- End of top-level CLI usage. Detailed command reference moved to docs/commands.md -->
+
+
 
 # Or create manual symlinks to /usr/local/bin/
 sudo ln -sf "$(pwd)/email-cli.js" /usr/local/bin/email-send
@@ -398,6 +173,83 @@ copy .env.example .env
 # Windows PowerShell
 Copy-Item .env.example .env
 ```
+
+### ⚙️ Quick Setup Command
+
+After installing the CLI you can run a guided setup to configure your account credentials. The CLI will try to automatically persist recommended environment variables first — if the automatic step fails the docs below explain how to set them manually.
+
+Run the interactive setup:
+
+```bash
+# Interactive setup - prompts for your email and app password
+email-cli setup
+```
+
+Auto-setup behavior (priority):
+- The installer/post-install tries to persist recommended defaults (SMTP/IMAP/timeouts) for global installs.
+- The `email-cli setup` command attempts to persist `EMAIL_USER` and `EMAIL_PASS` automatically:
+   - If installed locally (development), it writes them to the package `.env` file.
+   - If installed globally, it will attempt OS-level persistence (Windows: `setx`, Unix: append to shell profile or create a sourced file).
+
+SMTP verification and accuracy:
+- The setup command attempts to auto-detect SMTP/IMAP server, port, and secure settings and then verify credentials by connecting to the SMTP service. This uses a best-effort strategy (provider heuristics + common hostnames/ports).
+- Expected accuracy: ~90-99% for major providers (Gmail, Outlook, Yahoo, iCloud) and common custom domains. Some providers may require special configuration (app passwords, 2FA, or custom ports) where auto-detection can fail.
+- If auto-detection fails the setup still saves `EMAIL_USER` and `EMAIL_PASS` and prints manual steps to finish setup.
+
+Force and validation options:
+- You can force persistence even when values exist by running:
+
+```bash
+email-cli setup --force
+# or
+email-cli setup -f
+```
+
+The `--force` flag attempts to overwrite user-level environment variables (where permitted).
+
+Troubleshooting & reliability:
+- The automatic verification will try multiple hostnames, ports (587, 465, 25, 2525), and secure modes, and includes retries/backoff to improve success rate.
+- If verification repeatedly fails for your provider, try the manual fallback steps. Common reasons for failure:
+   - Provider requires an app-specific password (Gmail/Google accounts with 2FA)
+   - Provider blocks SMTP from unknown IPs or requires special port settings
+   - Network/firewall restrictions on SMTP ports (25/465/587)
+
+If you're uncertain, creating a `.env` file locally (development) is the safest first step; you can then fine-tune SMTP settings and re-run `email-cli setup --force`.
+
+If automatic persistence fails, follow the manual steps below for your OS.
+
+Security note: Storing credentials in environment variables is convenient but treat them as secrets. Do not commit `.env` to version control. Prefer using App Passwords (Gmail) rather than your main account password.
+
+Manual fallback - Windows (PowerShell):
+
+```powershell
+# Set user-level environment variables (persisted for future sessions)
+setx EMAIL_USER "your-email@gmail.com"
+setx EMAIL_PASS "your-app-password"
+
+# After running setx, close and reopen your terminal for changes to take effect
+```
+
+Manual fallback - Linux / macOS (bash or zsh):
+
+```bash
+# Add to your shell profile (example for bash)
+echo 'export EMAIL_USER="your-email@gmail.com"' >> ~/.bashrc
+echo 'export EMAIL_PASS="your-app-password"' >> ~/.bashrc
+source ~/.bashrc
+
+# For zsh use ~/.zshrc instead of ~/.bashrc
+```
+
+If you prefer not to set system environment variables, edit the project's `.env` file (local development):
+
+```bash
+cp .env.example .env
+# edit .env and set:
+# EMAIL_USER=your-email@gmail.com
+# EMAIL_PASS=your-app-password
+```
+
 
 ### **Step 3: Configure .env File**
 Edit the `.env` file with your email settings:
