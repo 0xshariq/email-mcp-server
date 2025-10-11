@@ -201,6 +201,101 @@ async function runGlobalSetup() {
     console.log(colorize('gray', '💡 All commands work identically across Windows, macOS, and Linux!'));
 }
 
+// Persist default environment variables for global installs (without overwriting existing ones)
+async function persistDefaultGlobalEnvs() {
+    const os = require('os');
+    const fs = require('fs');
+    const path = require('path');
+    const child = require('child_process');
+
+    const defaults = {
+        SMTP_HOST: 'smtp.gmail.com',
+        SMTP_PORT: '587',
+        SMTP_SECURE: 'false',
+        IMAP_HOST: 'imap.gmail.com',
+        IMAP_PORT: '993',
+        IMAP_TLS: 'true',
+        IMAP_CONN_TIMEOUT: '60000',
+        IMAP_AUTH_TIMEOUT: '30000',
+        SMTP_REJECT_UNAUTHORIZED: 'false',
+        IMAP_REJECT_UNAUTHORIZED: 'false'
+    };
+
+    // Check existing environment variables first
+    const toSet = {};
+    Object.keys(defaults).forEach(k => {
+        if (!process.env[k]) toSet[k] = defaults[k];
+    });
+
+    if (Object.keys(toSet).length === 0) {
+        console.log(colorize('green', '✅ Global environment variables already set - no changes required'));
+        return;
+    }
+
+    const platform = os.platform();
+    console.log(colorize('cyan', '\n🔧 Persisting recommended default environment variables for global usage...'));
+
+    if (platform === 'win32') {
+        // Use setx for user-level persistence
+        Object.entries(toSet).forEach(([k, v]) => {
+            try {
+                child.execSync(`setx ${k} "${v}"`, { stdio: 'ignore' });
+                console.log(colorize('green', `  ✅ Set ${k}`));
+            } catch (e) {
+                console.log(colorize('yellow', `  ⚠️  Could not set ${k} via setx: ${e.message}`));
+            }
+        });
+        console.log(colorize('yellow', '\nℹ️  Windows: You may need to restart your terminal or log out/in for changes to apply'));
+        return;
+    }
+
+    // Unix-like systems: append to shell profile
+    const home = os.homedir();
+    const shell = process.env.SHELL || '';
+    const profiles = [];
+    if (shell.includes('zsh')) profiles.push(path.join(home, '.zshrc'));
+    if (shell.includes('bash')) profiles.push(path.join(home, '.bashrc'), path.join(home, '.profile'));
+    profiles.push(path.join(home, '.profile'), path.join(home, '.bash_profile'));
+
+    const exportLines = Object.entries(toSet).map(([k, v]) => `export ${k}="${v}"`).join('\n') + '\n';
+
+    for (const p of profiles) {
+        try {
+            if (!fs.existsSync(p)) {
+                fs.writeFileSync(p, exportLines, { encoding: 'utf8' });
+                console.log(colorize('green', `  ✅ Wrote defaults to ${p}`));
+                return;
+            }
+
+            const existing = fs.readFileSync(p, 'utf8');
+            let updated = existing;
+            Object.entries(toSet).forEach(([k, v]) => {
+                const re = new RegExp(`^export ${k}=`, 'm');
+                if (re.test(existing)) {
+                    // do not overwrite existing lines
+                } else {
+                    updated += `\nexport ${k}="${v}"`;
+                }
+            });
+            fs.writeFileSync(p, updated, { encoding: 'utf8' });
+            console.log(colorize('green', `  ✅ Updated ${p} with recommended defaults`));
+            return;
+        } catch (e) {
+            continue;
+        }
+    }
+
+    // Fallback: write to a dedicated file
+    try {
+        const fallback = path.join(home, '.email-mcp-defaults');
+        fs.writeFileSync(fallback, exportLines, { encoding: 'utf8' });
+        console.log(colorize('green', `  ✅ Wrote defaults to ${fallback}`));
+        console.log(colorize('gray', `  ℹ️  Add 'source ${fallback}' to your shell profile to load these variables`));
+    } catch (e) {
+        console.log(colorize('red', `  ❌ Failed to persist defaults: ${e.message}`));
+    }
+}
+
 async function main() {
     console.log(colorize('bright', '\n📦 Email MCP Server - Post-Install Setup'));
     
@@ -224,6 +319,12 @@ async function main() {
         console.log(colorize('blue', '🌐 Global installation detected (-g flag used)'));
         console.log(colorize('gray', '   Running automated setup for system-wide CLI access...'));
         await runGlobalSetup();
+        // Persist recommended default environment variables for global installs
+        try {
+            await persistDefaultGlobalEnvs();
+        } catch (e) {
+            console.log(colorize('yellow', '⚠️  Could not persist default environment variables: ' + e.message));
+        }
     } else {
         console.log(colorize('blue', '📁 Local installation detected (no -g flag)'));
         console.log(colorize('gray', '   Setting up for local development with .env configuration...'));

@@ -3,6 +3,11 @@
 import { spawn, execSync } from 'child_process';
 import path from 'path';
 import chalk from 'chalk';
+import nodemailer from 'nodemailer';
+import dns from 'dns/promises';
+import os from 'os';
+import readline from 'readline/promises';
+import { stdin as input, stdout as output } from 'process';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 
@@ -218,6 +223,13 @@ async function main() {
     } else if (commandArgs.includes('--help') || commandArgs.includes('-h')) {
       showUsage();
       return;
+    } else if (commandArgs[0] === 'setup') {
+      // Interactive setup: prompts for EMAIL_USER and EMAIL_PASS and attempts autodetect
+      await handleSetup(commandArgs.slice(1));
+      return;
+      } else if (commandArgs[0] === 'diagnose') {
+        await handleDiagnose(commandArgs.slice(1));
+        return;
     } else if (commandArgs[0] === 'update') {
       await handleUpdate();
       return;
@@ -607,6 +619,300 @@ main().catch((error) => {
   console.error(chalk.red.bold('❌ Fatal error:'), error.message);
   process.exit(1);
 });
+
+// --------------------- Setup helper functions ---------------------
+
+async function detectAndVerifySMTP(emailUser, emailPass) {
+  // Simple heuristic: try MX lookup for domain, then common smtp hosts
+  try {
+    const domain = emailUser.split('@')[1];
+    const mxRecords = await dns.resolveMx(domain).catch(() => []);
+
+    const candidates = [];
+    // From MX
+    for (const mx of mxRecords) {
+      candidates.push({ host: mx.exchange, port: 587, secure: false });
+      candidates.push({ host: mx.exchange, port: 465, secure: true });
+    }
+
+    // Common providers
+    candidates.push({ host: `smtp.${domain}`, port: 587, secure: false });
+    candidates.push({ host: `mail.${domain}`, port: 587, secure: false });
+    candidates.push({ host: `smtp.${domain}`, port: 465, secure: true });
+    candidates.push({ host: 'smtp.gmail.com', port: 587, secure: false });
+    candidates.push({ host: 'smtp.gmail.com', port: 465, secure: true });
+
+    // Try candidates sequentially with quick timeout
+    for (const c of candidates) {
+      try {
+        const transport = nodemailer.createTransport({
+          host: c.host,
+          port: c.port,
+          secure: c.secure,
+          auth: { user: emailUser, pass: emailPass },
+          tls: { rejectUnauthorized: false },
+          connectionTimeout: 10000,
+          greetingTimeout: 5000
+        });
+
+        // verify
+        const ok = await transport.verify().catch(() => false);
+        if (ok) {
+          return { ok: true, host: c.host, port: c.port, secure: c.secure };
+        }
+      } catch (e) {
+        // try next
+      }
+    }
+
+    return { ok: false };
+  } catch (err) {
+    return { ok: false };
+  }
+}
+
+function persistEnvLocally(envObj) {
+  // Write to ~/.email-mcp-env (user-scoped) and .env in project dir if available
+  try {
+    const home = os.homedir();
+    const userFile = path.join(home, '.email-mcp-env');
+    // Read existing and merge
+    let existing = '';
+    if (fs.existsSync(userFile)) existing = fs.readFileSync(userFile, 'utf8');
+    const current = existing.split(/\r?\n/).filter(Boolean);
+    const map = {};
+    current.forEach(line => {
+      const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
+      if (m) map[m[1]] = m[2];
+    });
+    Object.entries(envObj).forEach(([k, v]) => map[k] = v);
+    const lines = Object.entries(map).map(([k, v]) => `${k}=${v}`);
+    const tmp = userFile + '.tmp';
+    fs.writeFileSync(tmp, lines.join('\n') + '\n', { encoding: 'utf8', mode: 0o600 });
+    fs.renameSync(tmp, userFile);
+
+    // Also write local .env if present in package dir
+    const localEnv = path.join(__dirname, '.env');
+    if (!fs.existsSync(localEnv)) {
+      fs.writeFileSync(localEnv, lines.join('\n') + '\n', { encoding: 'utf8', mode: 0o600 });
+    } else {
+      // merge keys into local .env
+      const existingLocal = fs.readFileSync(localEnv, 'utf8');
+      const localLines = existingLocal.split(/\r?\n/).filter(Boolean);
+      const localMap = {};
+      localLines.forEach(line => {
+        const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
+        if (m) localMap[m[1]] = m[2];
+      });
+      Object.entries(envObj).forEach(([k, v]) => localMap[k] = v);
+      const updated = Object.entries(localMap).map(([k, v]) => `${k}=${v}`).join('\n') + '\n';
+      const tmpLocal = localEnv + '.tmp';
+      fs.writeFileSync(tmpLocal, updated, { encoding: 'utf8', mode: 0o600 });
+      fs.renameSync(tmpLocal, localEnv);
+    }
+
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function handleSetup(args) {
+  const rl = readline.createInterface({ input, output });
+  try {
+    // Parse flags
+    const force = args.includes('--force') || args.includes('-f');
+    const useKeychain = args.includes('--use-keychain');
+    const testSendFlag = args.includes('--test-send');
+  // Default: visible password (user requested unmasked by default). Only mask when --mask is provided.
+  const maskFlag = args.includes('--mask');
+
+    console.log(chalk.bold.cyan('\n🔧 Email CLI - Interactive Setup'));
+
+  const emailUser = await rl.question('Email address (EMAIL_USER): ');
+  const emailPass = maskFlag ? await readPassword('Password / App Password (EMAIL_PASS): ') : await rl.question('Password / App Password (EMAIL_PASS): ');
+
+    console.log(chalk.gray('🔍 Attempting to auto-detect SMTP settings...'));
+    const detected = await detectAndVerifySMTP(emailUser, emailPass);
+
+    if (detected.ok) {
+      console.log(chalk.green('✅ SMTP verified'));
+      console.log(chalk.cyan(`Host: ${detected.host} Port: ${detected.port} Secure: ${detected.secure}`));
+
+      const envs = {
+        EMAIL_USER: emailUser,
+        EMAIL_PASS: emailPass,
+        SMTP_HOST: detected.host,
+        SMTP_PORT: String(detected.port),
+        SMTP_SECURE: String(detected.secure)
+      };
+
+      const persisted = persistEnvLocally(envs);
+      if (persisted) {
+        console.log(chalk.green('✅ Environment saved to ~/.email-mcp-env and local .env (if missing)'));
+      } else {
+        console.log(chalk.yellow('⚠️  Could not persist environment automatically. Please add the following to your shell or .env:'));
+        Object.entries(envs).forEach(([k, v]) => console.log(`${k}=${v}`));
+      }
+
+      // Offer keychain storage if requested and available
+      if (useKeychain) {
+        try {
+          const keytar = await import('keytar').then(m => m.default || m).catch(() => null);
+          if (keytar && keytar.setPassword) {
+            await keytar.setPassword('email-mcp-server', emailUser, emailPass);
+            console.log(chalk.green('🔐 Password stored in OS keychain (keytar)'));
+            // Remove plain text from local files if we wrote them
+          } else {
+            console.log(chalk.yellow('⚠️  keytar not available - password not stored in keychain'));
+          }
+        } catch (e) {
+          console.log(chalk.yellow('⚠️  Could not store password in keychain:'), e.message);
+        }
+      }
+
+      // Optionally send a tiny test email if requested
+      if (testSendFlag) {
+        const to = await rl.question('Send test email to (recipient): ');
+        try {
+          await sendTestEmail(envs, to);
+          console.log(chalk.green('✅ Test email sent successfully'));
+        } catch (e) {
+          console.log(chalk.red('❌ Test email failed:'), e.message);
+        }
+      }
+    } else {
+      console.log(chalk.yellow('⚠️  Auto-detection failed.')); 
+      console.log(chalk.yellow('Saving EMAIL_USER and EMAIL_PASS locally; rerun setup with --force after manual config.'));
+
+      const envs = { EMAIL_USER: emailUser, EMAIL_PASS: emailPass };
+      const persisted = persistEnvLocally(envs);
+      if (persisted) console.log(chalk.green('✅ EMAIL_USER and EMAIL_PASS saved to ~/.email-mcp-env'));
+      else console.log(chalk.red('❌ Could not persist credentials automatically. Please create a .env file manually.'));
+    }
+
+  } finally {
+    rl.close();
+  }
+}
+
+async function handleDiagnose(args) {
+  // Usage: email-cli diagnose user@example.com
+  const target = args[0];
+  if (!target || !target.includes('@')) {
+    console.log(chalk.yellow('Usage: email-cli diagnose user@example.com'));
+    return;
+  }
+  const domain = target.split('@')[1];
+  console.log(chalk.bold.cyan(`\n🔎 Diagnosing ${domain}`));
+  try {
+    const mx = await dns.resolveMx(domain).catch(() => []);
+    if (mx.length === 0) {
+      console.log(chalk.yellow('No MX records found for domain')); 
+    } else {
+      console.log(chalk.green(`MX records (${mx.length}):`));
+      mx.forEach(m => console.log(`  ${m.exchange} (priority ${m.priority})`));
+    }
+
+    const ports = [25, 587, 465, 2525];
+    for (const hostEntry of (mx.length ? mx.map(m=>m.exchange) : ["smtp."+domain, "mail."+domain])) {
+      console.log(chalk.dim(`\nProbing ${hostEntry}...`));
+      for (const p of ports) {
+        const ok = await probePort(hostEntry, p, 4000).catch(()=>false);
+        console.log(ok ? chalk.green(`  Port ${p}: open`) : chalk.red(`  Port ${p}: closed/filtered`));
+      }
+    }
+    console.log();
+  } catch (e) {
+    console.log(chalk.red('Diagnosis error:'), e.message);
+  }
+}
+
+async function probePort(host, port, timeout = 3000) {
+  try {
+    const netModule = await import('net').then(m => m.default || m);
+    return await new Promise((resolve) => {
+      const socket = netModule.createConnection({ host, port, timeout }, () => {
+        socket.destroy();
+        resolve(true);
+      });
+      socket.on('error', () => { try { socket.destroy(); } catch(_){}; resolve(false); });
+      socket.on('timeout', () => { try { socket.destroy(); } catch(_){}; resolve(false); });
+    });
+  } catch (e) {
+    return false;
+  }
+}
+
+async function readPassword(prompt) {
+  // Minimal masked password entry for interactive terminals
+  return new Promise((resolve) => {
+    const stdin = process.stdin;
+    const stdout = process.stdout;
+    stdout.write(prompt);
+    stdin.setRawMode(true);
+    stdin.resume();
+    stdin.setEncoding('utf8');
+    let password = '';
+    function onData(ch) {
+      ch = String(ch);
+      switch (ch) {
+        case '\r':
+        case '\n':
+          stdout.write('\n');
+          stdin.setRawMode(false);
+          stdin.pause();
+          stdin.removeListener('data', onData);
+          resolve(password);
+          break;
+        case '\u0003':
+          // Ctrl-C
+          stdin.setRawMode(false);
+          stdin.pause();
+          stdin.removeListener('data', onData);
+          resolve('');
+          break;
+        case '\u0008':
+        case '\u007f':
+          // backspace
+          if (password.length > 0) {
+            password = password.slice(0, -1);
+            stdout.write('\b \b');
+          }
+          break;
+        default:
+          password += ch;
+          stdout.write('*');
+          break;
+      }
+    }
+    stdin.on('data', onData);
+  });
+}
+
+async function sendTestEmail(envs, to) {
+  if (!to || !to.includes('@')) throw new Error('Invalid recipient for test email');
+  const transport = nodemailer.createTransport({
+    host: envs.SMTP_HOST || process.env.SMTP_HOST,
+    port: Number(envs.SMTP_PORT || process.env.SMTP_PORT || 587),
+    secure: (envs.SMTP_SECURE === 'true') || (process.env.SMTP_SECURE === 'true') || false,
+    auth: { user: envs.EMAIL_USER || process.env.EMAIL_USER, pass: envs.EMAIL_PASS || process.env.EMAIL_PASS },
+    tls: { rejectUnauthorized: false }
+  });
+
+  return new Promise((resolve, reject) => {
+    transport.sendMail({
+      from: envs.EMAIL_USER || process.env.EMAIL_USER,
+      to,
+      subject: 'Email MCP Server - Test Message',
+      text: 'This is a test message generated by email-cli setup'
+    }, (err, info) => {
+      if (err) return reject(err);
+      resolve(info);
+    });
+  });
+}
+
 
 // =============================================================================
 // BASIC EMAIL OPERATIONS
