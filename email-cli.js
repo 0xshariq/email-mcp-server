@@ -1,347 +1,123 @@
 #!/usr/bin/env node
 
-import { spawn, execSync } from 'child_process';
+import { spawn, execSync, spawnSync } from 'child_process';
 import path from 'path';
 import chalk from 'chalk';
 import nodemailer from 'nodemailer';
 import dns from 'dns/promises';
-import os from 'os';
-import readline from 'readline/promises';
-import { stdin as input, stdout as output } from 'process';
-import { fileURLToPath } from 'url';
 import fs from 'fs';
+import os from 'os';
+import readline from 'readline';
 
-// Function to display current user email at the start of commands
-function displayCurrentUser() {
-  try {
-    // Try to get email from environment variables first
-    if (process.env.EMAIL_USER) {
-      console.log(chalk.blue(`📧 Account: ${chalk.cyan(process.env.EMAIL_USER)}`));
-      console.log(); // Add spacing
-      return;
-    }
-    
-    // Fallback to .env file
-    const envPath = path.join(__dirname, '.env');
-    if (fs.existsSync(envPath)) {
-      const envContent = fs.readFileSync(envPath, 'utf8');
-      const emailUserMatch = envContent.match(/^EMAIL_USER=(.+)$/m);
-      if (emailUserMatch) {
-        const userEmail = emailUserMatch[1].trim().replace(/['"]/g, '');
-        console.log(chalk.blue(`📧 Account: ${chalk.cyan(userEmail)}`));
-        console.log(); // Add spacing
-      }
-    }
-  } catch (error) {
-    // Silently ignore errors - env file might not exist yet
-  }
-}
-
-// Function to clean and format email body text
-function cleanEmailBody(body) {
-  if (!body) return '(No content)';
-  
-  let cleaned = body;
-  
-  // Remove quoted-printable encoding
-  cleaned = cleaned.replace(/=([0-9A-F]{2})/g, (match, hex) => {
-    return String.fromCharCode(parseInt(hex, 16));
-  });
-  
-  // Remove soft line breaks (= at end of line)
-  cleaned = cleaned.replace(/=\r?\n/g, '');
-  
-  // Clean up HTML tags but preserve some structure
-  cleaned = cleaned.replace(/<br\s*\/?>/gi, '\n');
-  cleaned = cleaned.replace(/<\/p>/gi, '\n\n');
-  cleaned = cleaned.replace(/<[^>]*>/g, '');
-  
-  // Decode HTML entities
-  cleaned = cleaned.replace(/&quot;/g, '"');
-  cleaned = cleaned.replace(/&amp;/g, '&');
-  cleaned = cleaned.replace(/&lt;/g, '<');
-  cleaned = cleaned.replace(/&gt;/g, '>');
-  cleaned = cleaned.replace(/&nbsp;/g, ' ');
-  cleaned = cleaned.replace(/&#39;/g, "'");
-  
-  // Clean up URLs and make them more readable
-  cleaned = cleaned.replace(/https?:\/\/[^\s]+/g, (url) => {
-    if (url.length > 60) {
-      return url.substring(0, 50) + '...';
-    }
-    return url;
-  });
-  
-  // Remove excessive whitespace but preserve paragraph breaks
-  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
-  cleaned = cleaned.replace(/[ \t]+/g, ' ');
-  cleaned = cleaned.trim();
-  
-  // Remove email headers and MIME boundaries
-  cleaned = cleaned.replace(/^--[a-zA-Z0-9_]+.*$/gm, '');
-  cleaned = cleaned.replace(/^Content-[^:]+:.*$/gm, '');
-  cleaned = cleaned.replace(/^MIME-Version:.*$/gm, '');
-  
-  return cleaned || '(No readable content)';
-}
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Get the command name from the actual command used to invoke this script
-const fullPath = process.argv[1];
-let commandName = path.basename(fullPath);
-
-// For pnpm-generated wrappers, detect the actual command
-if (commandName === 'email-cli.js') {
-  let detectedCommand = null;
-  
-  // Try to detect from parent process (Unix-like systems)
-  if (process.platform !== 'win32') {
-    try {
-      const ppid = process.ppid;
-      if (ppid) {
-        const psOutput = execSync(`ps -p ${ppid} -o args= 2>/dev/null || echo ""`, { encoding: 'utf8' }).trim();
-        const wrapperMatch = psOutput.match(/(?:bash|sh|dash)\s+.*?\/([e][a-z-]+)(?:\s|$)/);
-        if (wrapperMatch && wrapperMatch[1]) {
-          detectedCommand = wrapperMatch[1];
-        }
-      }
-    } catch (e) {
-      // Ignore errors - common on Windows or restricted environments
-    }
-  }
-  
-  // Fallback to environment variable (works on all platforms)
-  if (!detectedCommand && process.env._) {
-    const envCommand = path.basename(process.env._);
-    if (envCommand.startsWith('e') && envCommand !== 'email-mcp-server') {
-      detectedCommand = envCommand;
-    }
-  }
-  
-  // Windows pnpm detection - check process.argv[1] path for command name
-  if (!detectedCommand && process.platform === 'win32') {
-    const scriptPath = process.argv[1];
-    if (scriptPath) {
-      const pathMatch = scriptPath.match(/([e][a-z-]+)(?:\.cmd|\.bat)?$/);
-      if (pathMatch && pathMatch[1] && pathMatch[1] !== 'email-cli') {
-        detectedCommand = pathMatch[1];
-      }
-    }
-  }
-  
-  if (detectedCommand) {
-    commandName = detectedCommand;
-  }
-}
-
-// Available commands mapping
+// Basic mapping of command name -> relative path under /bin
 const commands = {
-  // Basic Email Operations
-  'email-send': 'basic/email-send.js',
-  'esend': 'basic/email-send.js',
-  'email-read': 'basic/email-read.js',
-  'eread': 'basic/email-read.js',
-  'email-get': 'basic/email-get.js',
-  'eget': 'basic/email-get.js',
+  // basic
   'email-delete': 'basic/email-delete.js',
-  'edelete': 'basic/email-delete.js',
+  'email-get': 'basic/email-get.js',
   'email-mark-read': 'basic/email-mark-read.js',
-  'emarkread': 'basic/email-mark-read.js',
-
-  // Advanced Email Operations  
-  'email-search': 'advanced/email-search.js',
-  'esearch': 'advanced/email-search.js',
-  'email-forward': 'advanced/email-forward.js',
-  'eforward': 'advanced/email-forward.js',
-  'email-reply': 'advanced/email-reply.js',
-  'ereply': 'advanced/email-reply.js',
-  'email-stats': 'advanced/email-stats.js',
-  'estats': 'advanced/email-stats.js',
-  'email-draft': 'advanced/email-draft.js',
-  'edraft': 'advanced/email-draft.js',
-  'email-schedule': 'advanced/email-schedule.js',
-  'eschedule': 'advanced/email-schedule.js',
-  'email-bulk': 'advanced/email-bulk.js',
-  'ebulk': 'advanced/email-bulk.js',
-  'email-attach': 'advanced/email-attach.js',
-  'eattach': 'advanced/email-attach.js',
-
-  // Contact Management
-  'contact-add': 'contacts/contact-add.js',
-  'cadd': 'contacts/contact-add.js',
-  'contact-list': 'contacts/contact-list.js',
-  'clist': 'contacts/contact-list.js',
-  'contact-search': 'contacts/contact-search.js',
-  'csearch': 'contacts/contact-search.js',
-  'contact-group': 'contacts/contact-group.js',
-  'cgroup': 'contacts/contact-group.js',
-  'contact-update': 'contacts/contact-update.js',
-  'cupdate': 'contacts/contact-update.js',
-  'contact-delete': 'contacts/contact-delete.js',
-  'cdelete': 'contacts/contact-delete.js',
-  
-  // Utility Commands  
+  'email-read': 'basic/email-read.js',
+  'email-send': 'basic/email-send.js',
   'list': 'basic/list.js',
-  'email-cli': null // Special case - handled in main function, includes setup-env and export-env subcommands
+  // advanced
+  'email-attach': 'advanced/email-attach.js',
+  'email-bulk': 'advanced/email-bulk.js',
+  'email-draft': 'advanced/email-draft.js',
+  'email-forward': 'advanced/email-forward.js',
+  'email-reply': 'advanced/email-reply.js',
+  'email-schedule': 'advanced/email-schedule.js',
+  'email-search': 'advanced/email-search.js',
+  'email-stats': 'advanced/email-stats.js',
+  // contacts
+  'contact-add': 'contacts/contact-add.js',
+  'contact-delete': 'contacts/contact-delete.js',
+  'contact-group': 'contacts/contact-group.js',
+  'contact-list': 'contacts/contact-list.js',
+  'contact-search': 'contacts/contact-search.js',
+  'contact-update': 'contacts/contact-update.js'
 };
 
+// basic stdin/stdout helpers used by setup
+const input = process.stdin;
+const output = process.stdout;
 async function main() {
   const args = process.argv.slice(2);
-  let command = commandName;
-  let commandArgs = args;
-  
-  // If called as email-cli.js, get command from arguments
-  if (commandName === 'email-cli.js' || commandName === 'email-cli') {
-    // Handle version flag
-    if (args.includes('--version') || args.includes('-v')) {
-      showVersion();
-      return;
+  const invoked = path.basename(process.argv[1] || '');
+  const invokedName = invoked.replace(/\.js$/, '');
+
+  // Helper to spawn a bin script
+  function runScript(relPath, scriptArgs = []) {
+    const scriptPath = path.join(__dirname, 'bin', relPath);
+    if (!fs.existsSync(scriptPath)) {
+      console.error(chalk.red.bold(`❌ Script not found: ${scriptPath}`));
+      process.exit(1);
     }
-    
-    // If the user explicitly asks for help with no other args, show the full commands doc
-    if (args.length === 0) {
+    process.chdir(__dirname);
+    const nodeExecutable = process.platform === 'win32' ? 'node.exe' : 'node';
+    const child = spawn(nodeExecutable, [scriptPath, ...scriptArgs], {
+      stdio: 'inherit',
+      cwd: __dirname,
+      env: { ...process.env, NODE_PATH: __dirname },
+      shell: process.platform === 'win32'
+    });
+    child.on('close', (code) => process.exit(code || 0));
+    child.on('error', (err) => { console.error(chalk.red.bold('❌ Error:'), err.message); process.exit(1); });
+  }
+
+  // If invoked directly as a command alias (email-send, esend, etc.)
+  if (commands[invokedName] && commands[invokedName] !== null) {
+    // run the mapped bin script with args
+    runScript(commands[invokedName], args);
+    return;
+  }
+
+  // If invoked as the top-level CLI (email-cli), handle subcommands
+  if (invokedName === 'email-cli' || invokedName === 'email-cli.js') {
+    const sub = args[0];
+    const subArgs = args.slice(1);
+
+    if (!sub || sub === '--help' || sub === '-h' || sub === 'help') {
       showUsage();
       return;
     }
 
-    if ((args.includes('--help') || args.includes('-h')) && args.length === 1) {
-      // print the complete commands reference so users see every command and option
-      showFullCommandsDoc();
-      return;
-    }
-    
-    // Handle update command directly here
-    if (args[0] === 'update') {
-      await handleUpdate();
-      return;
-    }
-    
-    // extract global flags
-    const globalFlags = {
-      profile: null,
-      ci: args.includes('--ci') || args.includes('--non-interactive')
-    };
-    // parse --profile NAME
-    const pIndex = args.indexOf('--profile');
-    if (pIndex !== -1 && args[pIndex+1]) globalFlags.profile = args[pIndex+1];
-
-    command = args[0];
-    commandArgs = args.slice(1);
-  }
-
-  // Handle special email-cli command
-  if (command === 'email-cli') {
-    if (commandArgs.includes('--version') || commandArgs.includes('-v')) {
+    if (sub === '--version' || sub === '-v') {
       showVersion();
       return;
-    } else if (commandArgs.includes('--help') || commandArgs.includes('-h')) {
-      // show the full commands doc
-      showFullCommandsDoc();
+    }
+
+    if (sub === 'setup') {
+      await handleSetup(subArgs);
       return;
-    } else if (commandArgs[0] === 'setup') {
-      // Interactive setup: prompts for EMAIL_USER and EMAIL_PASS and attempts autodetect
-      await handleSetup(commandArgs.slice(1));
-      return;
-      } else if (commandArgs[0] === 'update') {
+    }
+
+    if (sub === 'update') {
       await handleUpdate();
       return;
-      } else if (commandArgs.length === 0) {
-      // Default behavior: show recent emails (like list command)
-      displayCurrentUser();
-      const scriptPath = path.join(__dirname, 'bin', 'basic/list.js');
-      
-      if (!fs.existsSync(scriptPath)) {
-        console.error(chalk.red.bold(`❌ Script not found: ${scriptPath}`));
-        showUsage();
-        process.exit(1);
-      }
-      
-      // Execute the list script
-      process.chdir(__dirname);
-      const nodeExecutable = process.platform === 'win32' ? 'node.exe' : 'node';
-      const childProcess = spawn(nodeExecutable, [scriptPath], {
-        stdio: 'inherit',
-        cwd: __dirname,
-        env: { 
-          ...process.env,
-          NODE_PATH: __dirname
-        },
-        shell: process.platform === 'win32' // Use shell on Windows for better compatibility
-      });
+    }
 
-      childProcess.on('close', (code) => {
-        process.exit(code || 0);
-      });
-
-      childProcess.on('error', (err) => {
-        console.error(chalk.red.bold('❌ Error executing list script:'), err.message);
-        process.exit(1);
-      });
+    // allow delegating to any command name after email-cli, e.g. `email-cli email-send ...`
+    if (commands[sub]) {
+      runScript(commands[sub], subArgs);
       return;
-    } else {
-      console.error(chalk.red.bold(`❌ Unknown argument for email-cli: ${commandArgs[0]}`));
-      console.log(chalk.yellow('💡 Use --help or --version, or run without arguments to see emails'));
-      process.exit(1);
     }
-  }
 
-  // Handle direct command execution (when called as the command itself)
-  if (commands[command] && commands[command] !== null) {
-    // Display current user email (except for help commands)
-    if (!commandArgs.includes('--help') && !commandArgs.includes('-h')) {
-      displayCurrentUser();
-    }
-    
-    const scriptPath = path.join(__dirname, 'bin', commands[command]);
-    
-    // Check if script exists
-    if (!fs.existsSync(scriptPath)) {
-      console.error(chalk.red.bold(`❌ Script not found: ${scriptPath}`));
-      console.error(chalk.gray(`Looked for: ${scriptPath}`));
-      console.error(chalk.gray(`Current directory: ${process.cwd()}`));
-      console.error(chalk.gray(`CLI directory: ${__dirname}`));
-      console.log(chalk.yellow('Available commands:'));
-      Object.keys(commands).forEach(cmd => {
-        console.log(chalk.cyan(`  ${cmd}`));
-      });
-      process.exit(1);
-    }
-    
-    // Change to the project directory to ensure relative imports work
-    process.chdir(__dirname);
-    
-    // Execute the script with proper environment
-    const nodeExecutable = process.platform === 'win32' ? 'node.exe' : 'node';
-    const childProcess = spawn(nodeExecutable, [scriptPath, ...commandArgs], {
-      stdio: 'inherit',
-      cwd: __dirname,
-      env: { 
-        ...process.env,
-        NODE_PATH: __dirname
-      },
-      shell: process.platform === 'win32' // Use shell on Windows for better compatibility
-    });
-
-    childProcess.on('close', (code) => {
-      process.exit(code || 0);
-    });
-
-    childProcess.on('error', (err) => {
-      console.error(chalk.red.bold('❌ Error executing script:'), err.message);
-      process.exit(1);
-    });
-  } else if (command === 'update') {
-    // Handle update command that wasn't caught earlier
-    await handleUpdate();
-  } else {
-    console.error(chalk.red.bold(`❌ Unknown command: ${command}`));
-    console.log(chalk.yellow('\n💡 Run with --help to see available commands'));
+    // default: show usage
+    console.error(chalk.red.bold(`❌ Unknown subcommand: ${sub}`));
+    console.log(chalk.yellow('💡 Run `email-cli --help` to see available commands'));
     showUsage();
     process.exit(1);
   }
+
+  // If none matched, check if first arg is a command (node email-cli.js email-send ...)
+  if (args[0] && commands[args[0]]) {
+    runScript(commands[args[0]], args.slice(1));
+    return;
+  }
+
+  // Fallback: show usage
+  showUsage();
 }
+
 
 function showVersion() {
   // Read version from package.json
@@ -375,82 +151,76 @@ function showVersion() {
 
 function showUsage() {
   console.log();
-  console.log(chalk.bold.cyan('📧 Email MCP CLI') + chalk.gray(' - ') + chalk.bold.white('Email Operations Suite'));
-  console.log(chalk.dim('═'.repeat(60)));
+  console.log(chalk.bold.cyan('📧 Email MCP CLI') + chalk.gray(' - ') + chalk.bold.white('Email Operations'));
   console.log();
-  
-  console.log(chalk.bold.yellow('Basic Email Operations:'));
-  console.log(chalk.green('  email-send, esend          Send an email'));
-  console.log(chalk.green('  email-read, eread          Read recent emails'));
-  console.log(chalk.green('  email-get, eget            Get specific email by ID'));
-  console.log(chalk.green('  email-delete, edelete      Delete an email'));
-  console.log(chalk.green('  email-mark-read, emarkread Mark email as read/unread'));
-  console.log(chalk.green('  email-attach, eattach      Send email with attachment'));
+
+  // Concise subcommands list (no long descriptions or examples)
+  console.log(chalk.bold.yellow('Subcommands:'));
+  console.log(chalk.green('  setup') + chalk.gray('                Configure EMAIL_USER / EMAIL_PASS and SMTP settings'));
+  console.log(chalk.green('  update') + chalk.gray('               Update CLI to latest version'));
+  console.log(chalk.green('  --version, -v') + chalk.gray('         Show version information'));
+  console.log(chalk.green('  --help, -h') + chalk.gray('            Show this help message'));
   console.log();
-  
-  console.log(chalk.bold.yellow('Advanced Email Operations:'));
-  console.log(chalk.cyan('  email-search, esearch      Search emails with filters'));
-  console.log(chalk.cyan('  email-forward, eforward    Forward an email'));
-  console.log(chalk.cyan('  email-reply, ereply        Reply to an email'));
-  console.log(chalk.cyan('  email-stats, estats        Get email statistics'));
-  console.log(chalk.cyan('  email-draft, edraft        Create email draft'));
-  console.log(chalk.cyan('  email-schedule, eschedule  Schedule email for later'));
-  console.log(chalk.cyan('  email-bulk, ebulk          Send bulk emails'));
+
+  console.log(chalk.bold.yellow('Global flags:'));
+  console.log(chalk.cyan('  --profile <name>') + chalk.gray('    Use named profile (optional)'));
+  console.log(chalk.cyan('  --ci, --non-interactive') + chalk.gray(' Run in non-interactive (CI) mode'));
+  console.log(chalk.cyan('  --email-user <user>') + chalk.gray('  Provide EMAIL_USER for non-interactive setup'));
+  console.log(chalk.cyan('  --email-pass <pass>') + chalk.gray('  Provide EMAIL_PASS for non-interactive setup'));
   console.log();
-  
-  console.log(chalk.bold.yellow('Contact Management:'));
-  console.log(chalk.magenta('  contact-add, cadd          Add a new contact'));
-  console.log(chalk.magenta('  contact-list, clist        List all contacts'));
-  console.log(chalk.magenta('  contact-search, csearch    Search contacts'));
-  console.log(chalk.magenta('  contact-group, cgroup      Get contacts by group'));
-  console.log(chalk.magenta('  contact-update, cupdate    Update contact info'));
-  console.log(chalk.magenta('  contact-delete, cdelete    Delete a contact'));
-  console.log();
-  
-  console.log(chalk.bold.blue('Utility Commands:'));
-  console.log(chalk.cyan('  list                       Show recent emails'));
-  console.log(chalk.cyan('  email-cli                  Show recent emails (main command)'));
-  console.log(chalk.cyan('  email-cli update           Update CLI to latest version'));
-  console.log();
-  
+
   console.log(chalk.bold.yellow('Usage:'));
-  console.log(chalk.blue('  email-cli') + chalk.gray('                   Show recent emails'));
-  console.log(chalk.blue('  email-cli update') + chalk.gray('           Update to latest version'));
-  console.log(chalk.blue('  email-cli --version') + chalk.gray('        Show version information'));
-  console.log(chalk.blue('  email-cli --help') + chalk.gray('           Show this help message'));
-  console.log(chalk.blue('  <command> --help') + chalk.gray('           Show help for specific command'));
+  console.log(chalk.blue('  email-cli setup') + chalk.gray('         Run interactive setup to configure credentials'));
+  console.log(chalk.blue('  email-cli update') + chalk.gray('        Update to latest version'));
+  console.log(chalk.blue('  email-cli --version') + chalk.gray('     Show version info'));
+  console.log(chalk.blue('  email-cli --help') + chalk.gray('        Show this help'));
+  console.log(chalk.blue('  email-cli <command> --help') + chalk.gray('  Show help for a specific command'));
   console.log();
-  
-  console.log(chalk.bold.yellow('Quick Start:'));
-  console.log(chalk.gray('1. Set up environment variables (see documentation)'));
-  console.log(chalk.gray('2. Run: ') + chalk.blue('email-cli --version') + chalk.gray(' to view version'));
-  console.log(chalk.gray('3. Use specific commands like: ') + chalk.blue('esend "user@example.com" "Subject" "Body"'));
-  console.log();
-  
-  if (process.platform === 'win32') {
-    console.log(chalk.bold.red('🪟 Windows Troubleshooting:'));
-    console.log(chalk.yellow('If commands show "path not found":'));
-    console.log(chalk.cyan('  npm list -g @0xshariq/email-mcp-server') + chalk.gray('  # Check installation'));
-    console.log(chalk.cyan('  where email-send') + chalk.gray('                      # Find command location'));
-    console.log(chalk.cyan('  refreshenv') + chalk.gray('                          # Refresh PATH (Chocolatey users)'));
-    console.log(chalk.cyan('  npm config get prefix') + chalk.gray('              # Check npm global path'));
-    console.log();
-  }
 }
 
-// Print the full commands documentation (raw markdown) when --help is requested.
-function showFullCommandsDoc() {
-  try {
-    const docPath = path.join(__dirname, 'docs', 'commands.md');
-    if (fs.existsSync(docPath)) {
-      const content = fs.readFileSync(docPath, 'utf8');
-      console.log('\n' + content + '\n');
-      return;
-    }
-  } catch (e) {
-    // ignore
+// Show styled help by invoking each command's own --help in the bin folder.
+function showStyledCommandsHelp() {
+  console.log();
+  console.log(chalk.bold.cyan('📚 Commands (short list)'));
+  console.log(chalk.dim('Run any command with --help for detailed usage.'));
+  console.log();
+
+  // Group commands by their mapped path prefix
+  const groups = {
+    'basic': [],
+    'advanced': [],
+    'contacts': [],
+    'utility': []
+  };
+
+  Object.entries(commands).forEach(([name, rel]) => {
+    if (!rel) return;
+    if (rel.startsWith('basic/')) groups.basic.push(name);
+    else if (rel.startsWith('advanced/')) groups.advanced.push(name);
+    else if (rel.startsWith('contacts/')) groups.contacts.push(name);
+    else groups.utility.push(name);
+  });
+
+  if (groups.basic.length) {
+    console.log(chalk.bold.yellow('Basic:'));
+    console.log('  ' + groups.basic.join(', '));
+    console.log();
   }
-  console.log(chalk.yellow('\nNo commands documentation found (docs/commands.md)')); 
+  if (groups.advanced.length) {
+    console.log(chalk.bold.yellow('Advanced:'));
+    console.log('  ' + groups.advanced.join(', '));
+    console.log();
+  }
+  if (groups.contacts.length) {
+    console.log(chalk.bold.yellow('Contacts:'));
+    console.log('  ' + groups.contacts.join(', '));
+    console.log();
+  }
+  if (groups.utility.length) {
+    console.log(chalk.bold.yellow('Utility:'));
+    console.log('  ' + groups.utility.join(', '));
+    console.log();
+  }
 }
 
 async function handleUpdate() {
@@ -746,6 +516,40 @@ function persistEnvLocally(envObj) {
   }
 }
 
+async function removePasswordFromFiles(emailUser) {
+  // Remove EMAIL_PASS entries from ~/.email-mcp-env and local .env
+  const home = os.homedir();
+  const userFile = path.join(home, '.email-mcp-env');
+  try {
+    if (fs.existsSync(userFile)) {
+      const content = fs.readFileSync(userFile, 'utf8');
+      const lines = content.split(/\r?\n/).filter(Boolean).map(line => {
+        if (line.startsWith('EMAIL_PASS=')) return null;
+        return line;
+      }).filter(Boolean);
+      const tmp = userFile + '.tmp';
+      fs.writeFileSync(tmp, lines.join('\n') + '\n', { encoding: 'utf8', mode: 0o600 });
+      fs.renameSync(tmp, userFile);
+    }
+
+    const localEnv = path.join(__dirname, '.env');
+    if (fs.existsSync(localEnv)) {
+      const content = fs.readFileSync(localEnv, 'utf8');
+      const lines = content.split(/\r?\n/).filter(Boolean).map(line => {
+        if (line.startsWith('EMAIL_PASS=')) return null;
+        return line;
+      }).filter(Boolean);
+      const tmpLocal = localEnv + '.tmp';
+      fs.writeFileSync(tmpLocal, lines.join('\n') + '\n', { encoding: 'utf8', mode: 0o600 });
+      fs.renameSync(tmpLocal, localEnv);
+    }
+
+    return true;
+  } catch (e) {
+    throw e;
+  }
+}
+
 async function handleSetup(args) {
   const rl = readline.createInterface({ input, output });
   try {
@@ -753,28 +557,73 @@ async function handleSetup(args) {
     const force = args.includes('--force') || args.includes('-f');
     const useKeychain = args.includes('--use-keychain');
     const testSendFlag = args.includes('--test-send');
-  // Default: visible password (user requested unmasked by default). Only mask when --mask is provided.
-  const maskFlag = args.includes('--mask');
+    const maskFlag = args.includes('--mask');
+    const nonInteractive = args.includes('--ci') || args.includes('--non-interactive');
+    // parse profile
+    let profile = null;
+    const pIndex = args.indexOf('--profile');
+    if (pIndex !== -1 && args[pIndex+1]) profile = args[pIndex+1];
 
-    console.log(chalk.bold.cyan('\n🔧 Email CLI - Interactive Setup'));
+    // allow passing credentials directly for CI/non-interactive
+    let emailUserArg = null;
+    let emailPassArg = null;
+    const euIndex = args.indexOf('--email-user');
+    if (euIndex !== -1 && args[euIndex+1]) emailUserArg = args[euIndex+1];
+    const epIndex = args.indexOf('--email-pass');
+    if (epIndex !== -1 && args[epIndex+1]) emailPassArg = args[epIndex+1];
 
-  const emailUser = await rl.question('Email address (EMAIL_USER): ');
-  const emailPass = maskFlag ? await readPassword('Password / App Password (EMAIL_PASS): ') : await rl.question('Password / App Password (EMAIL_PASS): ');
+    console.log(chalk.bold.cyan('\n🔧 Email CLI - Setup'));
 
-    console.log(chalk.gray('🔍 Attempting to auto-detect SMTP settings...'));
-    const detected = await detectAndVerifySMTP(emailUser, emailPass);
+    let emailUser;
+    let emailPass;
+
+    if (nonInteractive) {
+      // In CI mode, prefer explicit args then env vars
+      emailUser = emailUserArg || process.env.EMAIL_USER;
+      emailPass = emailPassArg || process.env.EMAIL_PASS;
+      if (!emailUser || !emailPass) {
+        console.error(chalk.red('❌ Non-interactive mode requires --email-user and --email-pass or corresponding environment variables'));
+        return;
+      }
+    } else {
+      // Interactive flow
+      emailUser = emailUserArg || await rl.question('Email address (EMAIL_USER): ');
+      emailPass = emailPassArg || (maskFlag ? await readPassword('Password / App Password (EMAIL_PASS): ') : await rl.question('Password / App Password (EMAIL_PASS): '));
+    }
+
+  console.log(chalk.gray('🔍 Attempting to auto-detect SMTP settings...'));
+  const detected = await detectAndVerifySMTP(emailUser, emailPass);
 
     if (detected.ok) {
       console.log(chalk.green('✅ SMTP verified'));
       console.log(chalk.cyan(`Host: ${detected.host} Port: ${detected.port} Secure: ${detected.secure}`));
 
+      // If user requests keychain storage, attempt to store password in OS keychain first.
+      let passwordStoredInKeychain = false;
+      let keytarModule = null;
+      if (useKeychain) {
+        try {
+          keytarModule = await import('keytar').then(m => m.default || m).catch(() => null);
+          if (keytarModule && keytarModule.setPassword) {
+            await keytarModule.setPassword('email-mcp-server', emailUser, emailPass);
+            passwordStoredInKeychain = true;
+            console.log(chalk.green('🔐 Password stored in OS keychain (keytar)'));
+          } else {
+            console.log(chalk.yellow('⚠️  keytar not available - password not stored in keychain'));
+          }
+        } catch (e) {
+          console.log(chalk.yellow('⚠️  Could not store password in keychain:'), e.message);
+        }
+      }
+
+      // Prepare envs to persist. If password stored in keychain, do not write EMAIL_PASS to disk.
       const envs = {
         EMAIL_USER: emailUser,
-        EMAIL_PASS: emailPass,
         SMTP_HOST: detected.host,
         SMTP_PORT: String(detected.port),
         SMTP_SECURE: String(detected.secure)
       };
+      if (!passwordStoredInKeychain) envs.EMAIL_PASS = emailPass;
 
       const persisted = persistEnvLocally(envs);
       if (persisted) {
@@ -784,25 +633,19 @@ async function handleSetup(args) {
         Object.entries(envs).forEach(([k, v]) => console.log(`${k}=${v}`));
       }
 
-      // Offer keychain storage if requested and available
-      if (useKeychain) {
+      // If we stored the password in keychain, try to scrub any existing EMAIL_PASS entries from disk.
+      if (passwordStoredInKeychain) {
         try {
-          const keytar = await import('keytar').then(m => m.default || m).catch(() => null);
-          if (keytar && keytar.setPassword) {
-            await keytar.setPassword('email-mcp-server', emailUser, emailPass);
-            console.log(chalk.green('🔐 Password stored in OS keychain (keytar)'));
-            // Remove plain text from local files if we wrote them
-          } else {
-            console.log(chalk.yellow('⚠️  keytar not available - password not stored in keychain'));
-          }
+          await removePasswordFromFiles(emailUser);
+          console.log(chalk.green('🧹 Removed plaintext EMAIL_PASS from local config files'));
         } catch (e) {
-          console.log(chalk.yellow('⚠️  Could not store password in keychain:'), e.message);
+          console.log(chalk.yellow('⚠️  Could not fully scrub EMAIL_PASS from disk:'), e.message);
         }
       }
 
       // Optionally send a tiny test email if requested
       if (testSendFlag) {
-        const to = await rl.question('Send test email to (recipient): ');
+        const to = nonInteractive ? process.env.TEST_SEND_TO : await rl.question('Send test email to (recipient): ');
         try {
           await sendTestEmail(envs, to);
           console.log(chalk.green('✅ Test email sent successfully'));
@@ -813,11 +656,26 @@ async function handleSetup(args) {
     } else {
       console.log(chalk.yellow('⚠️  Auto-detection failed.')); 
       console.log(chalk.yellow('Saving EMAIL_USER and EMAIL_PASS locally; rerun setup with --force after manual config.'));
+        // If keychain requested, try storing password there and persist without EMAIL_PASS
+        let stored = false;
+        if (useKeychain) {
+          try {
+            const keytarModule = await import('keytar').then(m => m.default || m).catch(() => null);
+            if (keytarModule && keytarModule.setPassword) {
+              await keytarModule.setPassword('email-mcp-server', emailUser, emailPass);
+              stored = true;
+              console.log(chalk.green('🔐 Password stored in OS keychain (keytar)'));
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
 
-      const envs = { EMAIL_USER: emailUser, EMAIL_PASS: emailPass };
-      const persisted = persistEnvLocally(envs);
-      if (persisted) console.log(chalk.green('✅ EMAIL_USER and EMAIL_PASS saved to ~/.email-mcp-env'));
-      else console.log(chalk.red('❌ Could not persist credentials automatically. Please create a .env file manually.'));
+        const envs = { EMAIL_USER: emailUser };
+        if (!stored) envs.EMAIL_PASS = emailPass;
+        const persisted = persistEnvLocally(envs);
+        if (persisted) console.log(chalk.green('✅ EMAIL_USER saved to ~/.email-mcp-env'));
+        else console.log(chalk.red('❌ Could not persist credentials automatically. Please create a .env file manually.'));
     }
 
   } finally {
