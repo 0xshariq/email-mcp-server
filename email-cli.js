@@ -200,8 +200,15 @@ async function main() {
       return;
     }
     
-    if (args.length === 0 || (args.includes('--help') || args.includes('-h')) && args.length === 1) {
+    // If the user explicitly asks for help with no other args, show the full commands doc
+    if (args.length === 0) {
       showUsage();
+      return;
+    }
+
+    if ((args.includes('--help') || args.includes('-h')) && args.length === 1) {
+      // print the complete commands reference so users see every command and option
+      showFullCommandsDoc();
       return;
     }
     
@@ -211,6 +218,15 @@ async function main() {
       return;
     }
     
+    // extract global flags
+    const globalFlags = {
+      profile: null,
+      ci: args.includes('--ci') || args.includes('--non-interactive')
+    };
+    // parse --profile NAME
+    const pIndex = args.indexOf('--profile');
+    if (pIndex !== -1 && args[pIndex+1]) globalFlags.profile = args[pIndex+1];
+
     command = args[0];
     commandArgs = args.slice(1);
   }
@@ -221,19 +237,17 @@ async function main() {
       showVersion();
       return;
     } else if (commandArgs.includes('--help') || commandArgs.includes('-h')) {
-      showUsage();
+      // show the full commands doc
+      showFullCommandsDoc();
       return;
     } else if (commandArgs[0] === 'setup') {
       // Interactive setup: prompts for EMAIL_USER and EMAIL_PASS and attempts autodetect
       await handleSetup(commandArgs.slice(1));
       return;
-      } else if (commandArgs[0] === 'diagnose') {
-        await handleDiagnose(commandArgs.slice(1));
-        return;
-    } else if (commandArgs[0] === 'update') {
+      } else if (commandArgs[0] === 'update') {
       await handleUpdate();
       return;
-    } else if (commandArgs.length === 0) {
+      } else if (commandArgs.length === 0) {
       // Default behavior: show recent emails (like list command)
       displayCurrentUser();
       const scriptPath = path.join(__dirname, 'bin', 'basic/list.js');
@@ -422,6 +436,21 @@ function showUsage() {
     console.log(chalk.cyan('  npm config get prefix') + chalk.gray('              # Check npm global path'));
     console.log();
   }
+}
+
+// Print the full commands documentation (raw markdown) when --help is requested.
+function showFullCommandsDoc() {
+  try {
+    const docPath = path.join(__dirname, 'docs', 'commands.md');
+    if (fs.existsSync(docPath)) {
+      const content = fs.readFileSync(docPath, 'utf8');
+      console.log('\n' + content + '\n');
+      return;
+    }
+  } catch (e) {
+    // ignore
+  }
+  console.log(chalk.yellow('\nNo commands documentation found (docs/commands.md)')); 
 }
 
 async function handleUpdate() {
@@ -796,53 +825,7 @@ async function handleSetup(args) {
   }
 }
 
-async function handleDiagnose(args) {
-  // Usage: email-cli diagnose user@example.com
-  const target = args[0];
-  if (!target || !target.includes('@')) {
-    console.log(chalk.yellow('Usage: email-cli diagnose user@example.com'));
-    return;
-  }
-  const domain = target.split('@')[1];
-  console.log(chalk.bold.cyan(`\n🔎 Diagnosing ${domain}`));
-  try {
-    const mx = await dns.resolveMx(domain).catch(() => []);
-    if (mx.length === 0) {
-      console.log(chalk.yellow('No MX records found for domain')); 
-    } else {
-      console.log(chalk.green(`MX records (${mx.length}):`));
-      mx.forEach(m => console.log(`  ${m.exchange} (priority ${m.priority})`));
-    }
-
-    const ports = [25, 587, 465, 2525];
-    for (const hostEntry of (mx.length ? mx.map(m=>m.exchange) : ["smtp."+domain, "mail."+domain])) {
-      console.log(chalk.dim(`\nProbing ${hostEntry}...`));
-      for (const p of ports) {
-        const ok = await probePort(hostEntry, p, 4000).catch(()=>false);
-        console.log(ok ? chalk.green(`  Port ${p}: open`) : chalk.red(`  Port ${p}: closed/filtered`));
-      }
-    }
-    console.log();
-  } catch (e) {
-    console.log(chalk.red('Diagnosis error:'), e.message);
-  }
-}
-
-async function probePort(host, port, timeout = 3000) {
-  try {
-    const netModule = await import('net').then(m => m.default || m);
-    return await new Promise((resolve) => {
-      const socket = netModule.createConnection({ host, port, timeout }, () => {
-        socket.destroy();
-        resolve(true);
-      });
-      socket.on('error', () => { try { socket.destroy(); } catch(_){}; resolve(false); });
-      socket.on('timeout', () => { try { socket.destroy(); } catch(_){}; resolve(false); });
-    });
-  } catch (e) {
-    return false;
-  }
-}
+    
 
 async function readPassword(prompt) {
   // Minimal masked password entry for interactive terminals
