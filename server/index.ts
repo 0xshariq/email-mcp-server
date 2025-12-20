@@ -1,13 +1,12 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types";
-import { 
-    EmailService, 
-    ContactService, 
-    createEmailService, 
+import {
+    ContactService,
+    createEmailService,
     EmailFilter,
-    Attachment 
-} from "./email.js";
+    Attachment
+} from "../src/lib/email.js";
 
 
 // Initialize email and contact services
@@ -38,9 +37,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 parameters: {
                     type: "object",
                     properties: {
-                        to: { 
-                            type: "string", 
-                            description: "Recipient email address(es), separated by commas for multiple recipients" 
+                        to: {
+                            type: "string",
+                            description: "Recipient email address(es), separated by commas for multiple recipients"
                         },
                         subject: { type: "string", description: "Subject of the email" },
                         body: { type: "string", description: "Body text of the email" },
@@ -58,8 +57,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         to: { type: "string", description: "Recipient email address(es)" },
                         subject: { type: "string", description: "Subject of the email" },
                         body: { type: "string", description: "Body text of the email" },
-                        attachments: { 
-                            type: "array", 
+                        attachments: {
+                            type: "array",
                             description: "Array of attachment objects with filename and path",
                             items: {
                                 type: "object",
@@ -80,9 +79,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 parameters: {
                     type: "object",
                     properties: {
-                        count: { 
-                            type: "number", 
-                            description: "Number of recent emails to read (default: 10)" 
+                        count: {
+                            type: "number",
+                            description: "Number of recent emails to read (default: 10)"
                         }
                     }
                 }
@@ -116,9 +115,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                     type: "object",
                     properties: {
                         email_id: { type: "string", description: "ID of the email" },
-                        read: { 
-                            type: "boolean", 
-                            description: "True to mark as read, false to mark as unread (default: true)" 
+                        read: {
+                            type: "boolean",
+                            description: "True to mark as read, false to mark as unread (default: true)"
                         }
                     },
                     required: ["email_id"]
@@ -152,9 +151,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                     properties: {
                         email_id: { type: "string", description: "ID of the email to forward" },
                         to: { type: "string", description: "New recipient email address(es)" },
-                        additional_message: { 
-                            type: "string", 
-                            description: "Optional additional message to include" 
+                        additional_message: {
+                            type: "string",
+                            description: "Optional additional message to include"
                         }
                     },
                     required: ["email_id", "to"]
@@ -168,9 +167,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                     properties: {
                         email_id: { type: "string", description: "ID of the email to reply to" },
                         reply_body: { type: "string", description: "Your reply message" },
-                        reply_all: { 
-                            type: "boolean", 
-                            description: "True to reply to all recipients (default: false)" 
+                        reply_all: {
+                            type: "boolean",
+                            description: "True to reply to all recipients (default: false)"
                         }
                     },
                     required: ["email_id", "reply_body"]
@@ -193,8 +192,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         to: { type: "string", description: "Recipient email address(es)" },
                         subject: { type: "string", description: "Subject of the email" },
                         body: { type: "string", description: "Body text of the email" },
-                        attachments: { 
-                            type: "array", 
+                        attachments: {
+                            type: "array",
                             description: "Optional array of attachment objects",
                             items: {
                                 type: "object",
@@ -217,12 +216,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         to: { type: "string", description: "Recipient email address(es)" },
                         subject: { type: "string", description: "Subject of the email" },
                         body: { type: "string", description: "Body text of the email" },
-                        schedule_date: { 
-                            type: "string", 
-                            description: "Date and time to send (ISO format)" 
+                        schedule_date: {
+                            type: "string",
+                            description: "Date and time to send (ISO format)"
                         },
-                        attachments: { 
-                            type: "array", 
+                        attachments: {
+                            type: "array",
                             description: "Optional array of attachment objects",
                             items: {
                                 type: "object",
@@ -337,10 +336,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name: tool, arguments: parameters } = request.params;
-    
+
     // Type guard to ensure parameters exist and are properly typed
     const params = parameters as Record<string, any> || {};
-    
+
     try {
         switch (tool) {
             // === BASIC EMAIL OPERATIONS ===
@@ -348,10 +347,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 const { to, subject, body, html } = params;
                 const recipients = (to as string).split(',').map((email: string) => email.trim());
                 const result = await emailService.sendEmail(recipients, subject as string, body as string, html as string);
-                return { 
-                    success: true, 
-                    message: "Email sent successfully!", 
-                    messageId: result.messageId 
+                return {
+                    success: true,
+                    message: "Email sent successfully!",
+                    messageId: result.messageId
                 };
 
             case "send_email_with_attachments":
@@ -366,42 +365,42 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     })),
                     params.html as string
                 );
-                return { 
-                    success: true, 
-                    message: "Email with attachments sent successfully!", 
-                    messageId: sendResult.messageId 
+                return {
+                    success: true,
+                    message: "Email with attachments sent successfully!",
+                    messageId: sendResult.messageId
                 };
 
             case "read_recent_emails":
                 const count = (params.count as number) || 10;
                 const emails = await emailService.readRecentEmails(count);
-                return { 
-                    success: true, 
-                    emails, 
-                    count: emails.length 
+                return {
+                    success: true,
+                    emails,
+                    count: emails.length
                 };
 
             case "get_email_by_id":
                 const email = await emailService.getEmailById(params.email_id as string);
-                return email 
+                return email
                     ? { success: true, email }
                     : { success: false, message: "Email not found" };
 
             case "delete_email":
                 const deleted = await emailService.deleteEmail(params.email_id as string);
-                return { 
-                    success: deleted, 
-                    message: deleted ? "Email deleted successfully" : "Failed to delete email" 
+                return {
+                    success: deleted,
+                    message: deleted ? "Email deleted successfully" : "Failed to delete email"
                 };
 
             case "mark_email_read":
                 const read = (params.read as boolean) !== false; // default to true
                 const marked = await emailService.markEmailAsRead(params.email_id as string, read);
-                return { 
-                    success: marked, 
-                    message: marked 
-                        ? `Email marked as ${read ? 'read' : 'unread'}` 
-                        : "Failed to update email status" 
+                return {
+                    success: marked,
+                    message: marked
+                        ? `Email marked as ${read ? 'read' : 'unread'}`
+                        : "Failed to update email status"
                 };
 
             // === ADVANCED EMAIL OPERATIONS ===
@@ -428,10 +427,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     (params.to as string).split(',').map((email: string) => email.trim()),
                     params.additional_message as string
                 );
-                return { 
-                    success: true, 
-                    message: "Email forwarded successfully!", 
-                    messageId: forwardResult.messageId 
+                return {
+                    success: true,
+                    message: "Email forwarded successfully!",
+                    messageId: forwardResult.messageId
                 };
 
             case "reply_to_email":
@@ -440,10 +439,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     params.reply_body as string,
                     (params.reply_all as boolean) || false
                 );
-                return { 
-                    success: true, 
-                    message: "Reply sent successfully!", 
-                    messageId: replyResult.messageId 
+                return {
+                    success: true,
+                    message: "Reply sent successfully!",
+                    messageId: replyResult.messageId
                 };
 
             case "get_email_statistics":
@@ -457,10 +456,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     params.body as string,
                     params.attachments as Attachment[]
                 );
-                return { 
-                    success: true, 
-                    message: "Draft created successfully!", 
-                    draftId: draftResult.draftId 
+                return {
+                    success: true,
+                    message: "Draft created successfully!",
+                    draftId: draftResult.draftId
                 };
 
             case "schedule_email":
@@ -471,18 +470,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     new Date(params.schedule_date as string),
                     params.attachments as Attachment[]
                 );
-                return { 
-                    success: true, 
-                    message: "Email scheduled successfully!", 
-                    scheduledId: scheduleResult.scheduledId 
+                return {
+                    success: true,
+                    message: "Email scheduled successfully!",
+                    scheduledId: scheduleResult.scheduledId
                 };
 
             case "bulk_send_emails":
                 const bulkResult = await emailService.bulkSendEmails(params.emails as any[]);
                 const successCount = bulkResult.filter(r => r.success).length;
                 const failureCount = bulkResult.filter(r => !r.success).length;
-                return { 
-                    success: true, 
+                return {
+                    success: true,
                     message: `Bulk send completed: ${successCount} successful, ${failureCount} failed`,
                     results: bulkResult,
                     summary: { successful: successCount, failed: failureCount }
@@ -495,35 +494,35 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     params.email as string,
                     params.group as string
                 );
-                return { 
-                    success: true, 
-                    message: "Contact added successfully!", 
-                    contact: newContact 
+                return {
+                    success: true,
+                    message: "Contact added successfully!",
+                    contact: newContact
                 };
 
             case "list_contacts":
                 const contacts = contactService.getAllContacts();
-                return { 
-                    success: true, 
-                    contacts, 
-                    count: contacts.length 
+                return {
+                    success: true,
+                    contacts,
+                    count: contacts.length
                 };
 
             case "search_contacts":
                 const foundContacts = contactService.searchContacts(params.query as string);
-                return { 
-                    success: true, 
-                    contacts: foundContacts, 
-                    count: foundContacts.length 
+                return {
+                    success: true,
+                    contacts: foundContacts,
+                    count: foundContacts.length
                 };
 
             case "get_contacts_by_group":
                 const groupContacts = contactService.getContactsByGroup(params.group as string);
-                return { 
-                    success: true, 
-                    contacts: groupContacts, 
+                return {
+                    success: true,
+                    contacts: groupContacts,
                     group: params.group as string,
-                    count: groupContacts.length 
+                    count: groupContacts.length
                 };
 
             case "update_contact":
@@ -539,9 +538,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
             case "delete_contact":
                 const contactDeleted = contactService.deleteContact(params.contact_id as string);
-                return { 
-                    success: contactDeleted, 
-                    message: contactDeleted ? "Contact deleted successfully!" : "Contact not found" 
+                return {
+                    success: contactDeleted,
+                    message: contactDeleted ? "Contact deleted successfully!" : "Contact not found"
                 };
 
             default:
@@ -549,9 +548,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
     } catch (error) {
         console.error(`Error executing tool ${tool}:`, error);
-        return { 
-            success: false, 
-            error: error instanceof Error ? error.message : "Unknown error occurred" 
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error occurred"
         };
     }
 });
