@@ -53,7 +53,7 @@ sudo ln -sf "$(pwd)/email-cli.js" /usr/local/bin/email-send
 sudo ln -sf "$(pwd)/email-cli.js" /usr/local/bin/esend  
 sudo ln -sf "$(pwd)/email-cli.js" /usr/local/bin/list
 sudo ln -sf "$(pwd)/email-cli.js" /usr/local/bin/cadd
-sudo ln -sf "$(pwd)/email-cli.js" /usr/local/bin/contact-list
+sudo ln -sf "$(pwd)/email-cli.js" /usr/local/bin/email-cli contact-list
 # ... (continue for all 40+ commands)
 ```
 
@@ -154,6 +154,19 @@ Email MCP Server can be used in two ways with different configuration approaches
 # email-cli — top-level usage
 
 This file documents only the top-level `email-cli` helper and installer commands. Full command reference (send, bulk, attach, contacts, etc.) lives in `docs/commands.md` and is printed by `email-cli --help`.
+
+## 📋 Important: Environment Configuration
+
+**The MCP server and CLI use the same environment configuration!**
+
+📖 **[Complete Configuration Guide](CONFIGURATION.md)** - Comprehensive setup for all platforms
+
+### Quick Reference:
+- **Local Development**: Use `.env` file in project directory (both server & CLI)
+- **Global Installation**: Set environment variables in shell profile or system settings
+  - Linux: `~/.bashrc`
+  - macOS: `~/.zshrc`
+  - Windows: System Environment Variables or PowerShell `$PROFILE`
 
 ## Synopsis
 
@@ -290,9 +303,9 @@ setx IMAP_TLS "true"
 ```bash
 # After global setup, commands work from anywhere
 email-cli --version
-email-send "user@example.com" "Subject" "Body"
-esend "user@example.com" "Subject" "Body"
-email-stats
+email-cli send "user@example.com" "Subject" "Body"
+email-cli esend "user@example.com" "Subject" "Body"
+email-cli stats
 ```
 
 **🚨 Global Installation Challenges:**
@@ -433,7 +446,7 @@ env | grep -E "(EMAIL|SMTP|IMAP)"
 **Test with a command:**
 ```bash
 # Should show your configured email account
-email-stats
+email-cli stats
 email-cli --version
 ```
 
@@ -474,7 +487,7 @@ npx @0xshariq/email-mcp-server email-cli --version  # Workaround
 
 # 4. Test global commands
 email-cli --version               # Should work globally
-email-send "test@example.com" "Hello" "Test message"
+email-cli send "test@example.com" "Hello" "Test message"
 ```
 
 **Complete Setup Examples by Platform:**
@@ -492,8 +505,8 @@ export IMAP_PORT="993"
 export IMAP_TLS="true"
 
 # 2. Test the setup
-email-cli                    # View recent emails
-email-stats                  # Check account info
+email-cli read                   # View recent emails
+email-cli stats                  # Check account info
 ```
 
 **Windows PowerShell (Administrator Setup):**
@@ -583,25 +596,25 @@ set IMAP_PORT=993
 set IMAP_TLS=true
 
 # 2. Test the setup
-email-cli                    # View recent emails
-email-stats                  # Check account info
+email-cli read                   # View recent emails
+email-cli stats                  # Check account info
 ```
 
 ## 📧 Basic Email Operations
 
-### 📤 Send Email (`email-send` / `esend`)
-Send emails to up to 3 recipients with optional HTML content. For more recipients, use `email-bulk`.
+### 📤 Send Email (`send` / `esend`)
+Send emails to up to 3 recipients with optional HTML content. For more recipients, use `bulk`.
 
 ```bash
 # Basic usage
-email-send "user@example.com" "Subject" "Email body"
-esend "user@example.com" "Meeting Reminder" "Team meeting at 3 PM today"
+email-cli send "user@example.com" "Subject" "Email body"
+email-cli esend "user@example.com" "Meeting Reminder" "Team meeting at 3 PM today"
 
 # Multiple recipients (up to 3)
-email-send "user1@example.com,user2@example.com,user3@example.com" "Update" "Important update for everyone"
+email-cli send "user1@example.com,user2@example.com,user3@example.com" "Update" "Important update for everyone"
 
 # With HTML content
-esend "client@example.com" "Newsletter" "Plain text version" "<h1>HTML Newsletter</h1><p>Rich content here</p>"
+email-cli esend "client@example.com" "Newsletter" "Plain text version" "<h1>HTML Newsletter</h1><p>Rich content here</p>"
 ```
 
 **Arguments:**
@@ -617,12 +630,12 @@ Retrieve and display recent emails from your inbox.
 
 ```bash
 # Read default (10) emails
-email-read
-eread
+email-cli read
+email-cli eread
 
 # Read specific number
 eread 5              # Read 5 recent emails
-email-read 25        # Read 25 recent emails
+email-cli read 25        # Read 25 recent emails
 ```
 
 **Arguments:**
@@ -633,12 +646,12 @@ Retrieve detailed information about a specific email by ID.
 
 ```bash
 # Get email details
-email-get 12345
-eget 67890
+email-cli get 12345
+email-cli eget 67890
 
 # Use with email IDs from email-read
 eread 5              # Shows email IDs
-eget <id-from-above>  # Get specific email
+email-cli eget <id-from-above>  # Get specific email
 ```
 
 **Arguments:**
@@ -649,12 +662,12 @@ Permanently delete emails from your inbox.
 
 ```bash
 # Interactive delete (asks for confirmation)
-email-delete 12345
-edelete 67890
+email-cli delete 12345
+email-cli edelete 67890
 
 # Force delete (no confirmation)
-edelete 12345 --force
-email-delete 67890 -f
+email-cli edelete 12345 --force
+email-cli delete 67890 -f
 ```
 
 **Arguments:**
@@ -666,12 +679,12 @@ Change the read status of emails.
 
 ```bash
 # Mark as read
-email-mark-read 12345 true
-emarkread 67890 true
+email-cli mark-read 12345 true
+email-cli emarkread 67890 true
 
 # Mark as unread
-email-mark-read 12345 false
-emarkread 67890 false
+email-cli mark-read 12345 false
+email-cli emarkread 67890 false
 ```
 
 **Arguments:**
@@ -697,8 +710,8 @@ list
 - **Shows aliases** - Both full and short command names
 - **Usage hints** - Quick examples for each command type
 - **No arguments needed** - Just run `list` to see all commands  
-emarkread 12345 false
-email-mark-read 67890 unread
+email-cli emarkread 12345 false
+email-cli mark-read 67890 unread
 ```
 
 **Arguments:**
@@ -712,19 +725,19 @@ Search emails with advanced filters and criteria.
 
 ```bash
 # Search by sender
-email-search --from "boss@company.com"
-esearch --from "important@client.com" --limit 5
+email-cli search --from "boss@company.com"
+email-cli esearch --from "important@client.com" --limit 5
 
 # Search by subject and date
-esearch --subject "meeting" --since "2024-01-01"
-email-search --subject "invoice" --before "2024-12-31"
+email-cli esearch --subject "meeting" --since "2024-01-01"
+email-cli search --subject "invoice" --before "2024-12-31"
 
 # Search unread emails
-esearch --seen false --limit 10
-email-search --from "@company.com" --seen false
+email-cli esearch --seen false --limit 10
+email-cli search --from "@company.com" --seen false
 
 # Complex searches
-esearch --to "me@company.com" --flagged true --since "2024-10-01"
+email-cli esearch --to "me@company.com" --flagged true --since "2024-10-01"
 ```
 
 **Filter Options:**
@@ -742,16 +755,16 @@ Send emails with unlimited file attachments (comma-separated paths and optional 
 
 ```bash
 # Single attachment
-email-attach "user@example.com" "Report" "Please find attached report" "./report.pdf"
+email-cli attach "user@example.com" "Report" "Please find attached report" "./report.pdf"
 
 # Multiple attachments with custom names
-email-attach "user@example.com" "Files" "Multiple files attached" "./file1.pdf,./file2.jpg,./data.xlsx" "Report,Photo,Spreadsheet"
+email-cli attach "user@example.com" "Files" "Multiple files attached" "./file1.pdf,./file2.jpg,./data.xlsx" "Report,Photo,Spreadsheet"
 
 # Multiple attachments without custom names (uses original filenames)
-eattach "team@company.com" "Resources" "Project files" "./code.js,./docs.pdf,./image.png"
+email-cli eattach "team@company.com" "Resources" "Project files" "./code.js,./docs.pdf,./image.png"
 
 # Complex example with full paths
-email-attach "client@example.com" "Deliverables" "Final project files" "/home/user/final.pdf,/home/user/code.zip,/home/user/demo.mp4" "Final Report,Source Code,Demo Video"
+email-cli attach "client@example.com" "Deliverables" "Final project files" "/home/user/final.pdf,/home/user/code.zip,/home/user/demo.mp4" "Final Report,Source Code,Demo Video"
 ```
 
 **Arguments:**
@@ -772,11 +785,11 @@ Forward existing emails to new recipients with additional message.
 
 ```bash
 # Basic forwarding
-email-forward 12345 "colleague@company.com" "Please review this email"
-eforward 67890 "team@company.com" "FYI - important update"
+email-cli forward 12345 "colleague@company.com" "Please review this email"
+email-cli eforward 67890 "team@company.com" "FYI - important update"
 
 # Forward without additional message
-eforward 12345 "manager@company.com"
+email-cli eforward 12345 "manager@company.com"
 ```
 
 **Arguments:**
@@ -789,11 +802,11 @@ Reply to existing emails with automatic threading.
 
 ```bash
 # Simple reply
-email-reply 12345 "Thank you for the information"
-ereply 67890 "I'll review this and get back to you"
+email-cli reply 12345 "Thank you for the information"
+email-cli ereply 67890 "I'll review this and get back to you"
 
 # Reply with confirmation
-ereply 12345 "Confirmed - I'll attend the meeting"
+email-cli ereply 12345 "Confirmed - I'll attend the meeting"
 ```
 
 **Arguments:**
@@ -805,8 +818,8 @@ Get comprehensive statistics about your email account.
 
 ```bash
 # Get account statistics
-email-stats
-estats
+email-cli stats
+email-cli estats
 ```
 
 **Statistics Include:**
@@ -822,11 +835,11 @@ Create email drafts for later editing and sending.
 
 ```bash
 # Create basic draft
-email-draft "client@example.com" "Proposal Draft" "Initial proposal content..."
-edraft "team@company.com" "Meeting Notes" "Draft meeting notes from today"
+email-cli draft "client@example.com" "Proposal Draft" "Initial proposal content..."
+email-cli edraft "team@company.com" "Meeting Notes" "Draft meeting notes from today"
 
 # Create detailed draft
-edraft "important@client.com" "Project Update" "Quarterly project status and next steps"
+email-cli edraft "important@client.com" "Project Update" "Quarterly project status and next steps"
 ```
 
 **Arguments:**
@@ -839,14 +852,14 @@ Schedule emails for future delivery with flexible time formats.
 
 ```bash
 # Schedule with ISO timestamp
-email-schedule "team@company.com" "Weekly Report" "Report content" "2024-12-31T09:00:00Z"
+email-cli schedule "team@company.com" "Weekly Report" "Report content" "2024-12-31T09:00:00Z"
 
 # Schedule with relative time  
-eschedule "client@example.com" "Follow-up" "Following up on our meeting" "+2h"
-eschedule "all@company.com" "Newsletter" "Monthly newsletter" "+1d"
+email-cli eschedule "client@example.com" "Follow-up" "Following up on our meeting" "+2h"
+email-cli eschedule "all@company.com" "Newsletter" "Monthly newsletter" "+1d"
 
 # Schedule for specific date/time
-email-schedule "hr@company.com" "Reminder" "Deadline reminder" "2024-12-25T08:00:00Z"
+email-cli schedule "hr@company.com" "Reminder" "Deadline reminder" "2024-12-25T08:00:00Z"
 ```
 
 **Time Formats:**
@@ -858,15 +871,15 @@ Send personalized emails to multiple recipients from a file or comma-separated l
 
 ```bash
 # Send to recipients from file
-email-bulk recipients.txt "Newsletter" "Monthly company newsletter content"
-ebulk team-emails.txt "Meeting Reminder" "Team meeting tomorrow at 2 PM"
+email-cli bulk recipients.txt "Newsletter" "Monthly company newsletter content"
+email-cli ebulk team-emails.txt "Meeting Reminder" "Team meeting tomorrow at 2 PM"
 
 # Send to comma-separated email addresses (no quotes needed)
-email-bulk user1@example.com,user2@example.com,user3@example.com "Update" "Important announcement"
-ebulk alice@company.com,bob@company.com,charlie@company.com "Meeting" "Team meeting at 3 PM"
+email-cli bulk user1@example.com,user2@example.com,user3@example.com "Update" "Important announcement"
+email-cli ebulk alice@company.com,bob@company.com,charlie@company.com "Meeting" "Team meeting at 3 PM"
 
 # With custom recipient file
-ebulk ./contacts/vip-clients.txt "Important Update" "Exclusive client update"
+email-cli ebulk ./contacts/vip-clients.txt "Important Update" "Exclusive client update"
 ```
 
 **Recipients File Format:**
@@ -905,16 +918,16 @@ Add new contacts to your address book with groups and additional information.
 
 ```bash
 # Basic contact
-contact-add "John Doe" "john@example.com"
-cadd "Jane Smith" "jane@company.com" "work"
+email-cli contact-add "John Doe" "john@example.com"
+email-cli cadd "Jane Smith" "jane@company.com" "work"
 
 # With specific groups
-cadd "Important Client" "client@example.com" "vip"
-contact-add "Team Lead" "lead@company.com" "management"
+email-cli cadd "Important Client" "client@example.com" "vip"
+email-cli contact-add "Team Lead" "lead@company.com" "management"
 
 # Various groups
-cadd "Family Member" "family@personal.com" "family"
-cadd "Freelancer" "dev@freelance.com" "contractors"
+email-cli cadd "Family Member" "family@personal.com" "family"
+email-cli cadd "Freelancer" "dev@freelance.com" "contractors"
 ```
 
 **Arguments:**
@@ -929,15 +942,15 @@ Display all contacts with their information and groups.
 
 ```bash
 # List all contacts (default: 20)
-contact-list
-clist
+email-cli email-cli contact-list
+email-cli clist
 
 # List specific number
-clist 50             # Show 50 contacts
-contact-list 10      # Show 10 contacts
+email-cli clist 50             # Show 50 contacts
+email-cli contact-list 10      # Show 10 contacts
 
 # List all contacts
-clist 999            # Show maximum contacts
+email-cli clist 999            # Show maximum contacts
 ```
 
 **Arguments:**
@@ -948,18 +961,18 @@ Search contacts by name, email domain, or any text.
 
 ```bash
 # Search by name
-contact-search "john"
-csearch "jane"
+email-cli contact-search "john"
+email-cli csearch "jane"
 
 # Search by email domain
-csearch "@company.com"        # All company contacts
-csearch "@gmail.com"         # All Gmail contacts
+email-cli csearch "@company.com"        # All company contacts
+email-cli csearch "@gmail.com"         # All Gmail contacts
 
 # Search by partial email
-csearch "support@"           # All support emails
+email-cli csearch "support@"           # All support emails
 
 # Search by any text
-csearch "client"             # Contacts with "client" in name/email
+email-cli csearch "client"             # Contacts with "client" in name/email
 ```
 
 **Arguments:**
@@ -974,17 +987,17 @@ Get all contacts belonging to a specific group.
 
 ```bash
 # Get work contacts
-contact-group "work"
-cgroup "clients"
+email-cli contact-group "work"
+email-cli cgroup "clients"
 
 # Get specific groups  
-cgroup "family"
-contact-group "vip"
-cgroup "management"
-cgroup "developers"
+email-cli cgroup "family"
+email-cli contact-group "vip"
+email-cli cgroup "management"
+email-cli cgroup "developers"
 
 # View all available groups
-cgroup --help    # Shows available groups if any
+email-cli cgroup --help    # Shows available groups if any
 ```
 
 **Arguments:**
@@ -999,25 +1012,25 @@ Update existing contact information including name, email, phone, and group.
 
 ```bash
 # Update name
-contact-update contact_123 name "John Smith Jr."
-cupdate contact_456 name "Jane Smith-Johnson"
+email-cli contact-update contact_123 name "John Smith Jr."
+email-cli cupdate contact_456 name "Jane Smith-Johnson"
 
 # Update email
-cupdate contact_123 email "newemail@example.com"
-contact-update contact_456 email "updated@company.com"
+email-cli cupdate contact_123 email "newemail@example.com"
+email-cli contact-update contact_456 email "updated@company.com"
 
 # Update phone number
-cupdate contact_123 phone "+1-555-0123"
-contact-update contact_789 phone "555.123.4567"
+email-cli cupdate contact_123 phone "+1-555-0123"
+email-cli contact-update contact_789 phone "555.123.4567"
 
 # Update group assignment
-cupdate contact_789 group "management"
-contact-update contact_101 group "vip"
-cupdate contact_202 group "developers"
+email-cli cupdate contact_789 group "management"
+email-cli contact-update contact_101 group "vip"
+email-cli cupdate contact_202 group "developers"
 
 # Clear a field (set to empty)
-cupdate contact_123 phone ""
-cupdate contact_456 group ""
+email-cli cupdate contact_123 phone ""
+email-cli cupdate contact_456 group ""
 ```
 
 **Arguments:**
@@ -1036,14 +1049,14 @@ Remove contacts from your address book with confirmation.
 
 ```bash
 # Delete by contact ID
-contact-delete contact_123
-cdelete contact_456
+email-cli contact-delete contact_123
+email-cli cdelete contact_456
 
 # Delete with confirmation
-cdelete contact_789    # Will prompt for confirmation
+email-cli cdelete contact_789    # Will prompt for confirmation
 
 # Batch delete (if supported)
-contact-delete contact_123 contact_456 contact_789
+email-cli contact-delete contact_123 contact_456 contact_789
 ```
 
 **Arguments:**
@@ -1066,25 +1079,25 @@ email-cli --help
 email-cli -h
 
 # Basic command help
-email-send --help          # Send email help
+email-cli send --help          # Send email help
 list --help               # List emails help  
-email-read --help         # Read email help
-email-reply --help        # Reply help
+email-cli read --help         # Read email help
+email-cli reply --help        # Reply help
 
 # Advanced command help
-email-attach --help       # Attachment help
-email-forward --help      # Forward help
-email-search --help       # Search help
+email-cli attach --help       # Attachment help
+email-cli forward --help      # Forward help
+email-cli search --help       # Search help
 
 # Contact management help
-contact-add --help        # Add contact help
-contact-list --help       # List contacts help
-contact-search --help     # Search contacts help
+email-cli email-cli contact-add --help        # Add contact help
+email-cli contact-list --help       # List contacts help
+email-cli contact-search --help     # Search contacts help
 
 # Help works with all aliases
-esend -h                  # Same as email-send --help
-eread --help             # Same as email-read --help
-cadd -h                  # Same as contact-add --help
+email-cli esend -h                  # Same as email-cli send --help
+eread --help             # Same as email-cli read --help
+email-cli cadd -h                  # Same as email-cli contact-add --help
 ```
 
 **Help Information Includes:**
@@ -1120,81 +1133,81 @@ cadd -h                  # Same as contact-add --help
 ### Daily Email Workflow
 ```bash
 # 1. Morning email check
-list --unread              # See unread emails
-list 10                    # Show latest 10 emails
-email-stats               # Get inbox statistics
+email-cli list --unread              # See unread emails
+email-cli list 10                    # Show latest 10 emails
+email-cli stats               # Get inbox statistics
 
 # 2. Read important emails  
-email-read 1              # Read newest email
+email-cli read 1              # Read newest email
 eread --id email_12345    # Read specific email
 
 # 3. Send quick updates
-esend "team@company.com" "Daily Standup" "Today's priorities and blockers"
-esend "boss@company.com" "Status Update" "Project on track, will deliver by Friday"
+email-cli esend "team@company.com" "Daily Standup" "Today's priorities and blockers"
+email-cli esend "boss@company.com" "Status Update" "Project on track, will deliver by Friday"
 
 # 4. Follow up on important emails
-esearch --from "client@company.com" --unread
-esearch --subject "urgent" --since "today"
+email-cli esearch --from "client@company.com" --unread
+email-cli esearch --subject "urgent" --since "today"
 ```
 
 ### Contact Management Workflow  
 ```bash
 # 1. Add new business contacts
-cadd "Jane Smith" "jane@newclient.com" "clients"
-contact-add "John Developer" "john.dev@company.com" "developers" "+1-555-0199"
+email-cli cadd "Jane Smith" "jane@newclient.com" "clients"
+email-cli contact-add "John Developer" "john.dev@company.com" "developers" "+1-555-0199"
 
 # 2. Organize and manage contacts
-contact-list              # See all contacts
-cgroup "work"             # Check work contacts  
-csearch "gmail.com"       # Find Gmail contacts
-csearch "manager"         # Search by role/name
+email-cli contact-list              # See all contacts
+email-cli cgroup "work"             # Check work contacts  
+email-cli csearch "gmail.com"       # Find Gmail contacts
+email-cli csearch "manager"         # Search by role/name
 
 # 3. Update contact information
-cupdate contact_123 group "vip"           # Promote to VIP
-contact-update contact_456 phone "+1-555-0200"  # Update phone
-cupdate contact_789 email "newemail@company.com"  # Update email
+email-cli cupdate contact_123 group "vip"           # Promote to VIP
+email-cli contact-update contact_456 phone "+1-555-0200"  # Update phone
+email-cli cupdate contact_789 email "newemail@company.com"  # Update email
 ```
 
 ### Advanced Email Operations
 ```bash
 # 1. Handle attachments
-email-attach "client@company.com" "Contract Review" "Please review attached contract" "contract.pdf"
-eattach "team@company.com" "Resources" "Meeting materials" "agenda.pdf,slides.ppt,notes.txt"
+email-cli attach "client@company.com" "Contract Review" "Please review attached contract" "contract.pdf"
+email-cli eattach "team@company.com" "Resources" "Meeting materials" "agenda.pdf,slides.ppt,notes.txt"
 
 # 2. Email management and organization
-esearch --subject "invoice" --since "2024-01-01"    # Find invoices
-esearch --from "support@" --unread                  # Unread support emails
-email-forward 12345 "accounting@company.com" "Please process this invoice"
+email-cli esearch --subject "invoice" --since "2024-01-01"    # Find invoices
+email-cli esearch --from "support@" --unread                  # Unread support emails
+email-cli forward 12345 "accounting@company.com" "Please process this invoice"
 
 # 3. Bulk operations (when available)
-ebulk newsletter-list.txt "Monthly Update" "Our latest news and updates"
-email-bulk subscribers.txt "Product Launch" "Exciting new features available!"
+email-cli ebulk newsletter-list.txt "Monthly Update" "Our latest news and updates"
+email-cli bulk subscribers.txt "Product Launch" "Exciting new features available!"
 
 # 4. Advanced search and filtering
-esearch --subject "meeting" --since "last week"     # Recent meeting emails
-esearch --has-attachment --from "@company.com"      # Company emails with files
-esearch --flagged --priority high                   # Important flagged emails
+email-cli esearch --subject "meeting" --since "last week"     # Recent meeting emails
+email-cli esearch --has-attachment --from "@company.com"      # Company emails with files
+email-cli esearch --flagged --priority high                   # Important flagged emails
 ```
 
 ### Complete Project Communication Workflow
 ```bash
 # 1. Setup project contacts
-cadd "Project Manager" "pm@client.com" "project-alpha"
-cadd "Lead Developer" "lead@team.com" "project-alpha"  
-cadd "Client Stakeholder" "stakeholder@client.com" "project-alpha"
+email-cli cadd "Project Manager" "pm@client.com" "project-alpha"
+email-cli cadd "Lead Developer" "lead@team.com" "project-alpha"  
+email-cli cadd "Client Stakeholder" "stakeholder@client.com" "project-alpha"
 
 # 2. Daily project communication
-esend "pm@client.com,lead@team.com" "Daily Update" "Progress report and next steps"
-eattach "stakeholder@client.com" "Weekly Report" "Status update" "report.pdf,metrics.xlsx"
+email-cli esend "pm@client.com,lead@team.com" "Daily Update" "Progress report and next steps"
+email-cli eattach "stakeholder@client.com" "Weekly Report" "Status update" "report.pdf,metrics.xlsx"
 
 # 3. Follow project communications
-cgroup "project-alpha"                    # View project team
-esearch --from "@client.com" --unread    # Check client messages
-esearch --subject "project-alpha" --since "this week"  # Project emails
+email-cli cgroup "project-alpha"                    # View project team
+email-cli esearch --from "@client.com" --unread    # Check client messages
+email-cli esearch --subject "project-alpha" --since "this week"  # Project emails
 
 # 4. Handle project issues
-email-reply 54321 "Re: Bug Report" "Fix deployed, please verify on your end"
-eforward 67890 "dev-team@company.com" "Please investigate this issue ASAP"
+email-cli reply 54321 "Re: Bug Report" "Fix deployed, please verify on your end"
+email-cli eforward 67890 "dev-team@company.com" "Please investigate this issue ASAP"
 ```
 
 ## ⚠️ Important Notes
@@ -1308,7 +1321,7 @@ pnpm install -g @0xshariq/email-mcp-server
 # ✅ Ready to use immediately!
 
 # Just set your email credentials and start using:
-email-send "user@example.com" "Subject" "Message"
+email-cli send "user@example.com" "Subject" "Message"
 ```
 
 ### **📁 For Developers (Local Installation):**

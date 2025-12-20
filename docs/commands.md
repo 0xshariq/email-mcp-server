@@ -50,367 +50,514 @@ email-cli setup --mask --use-keychain --test-send
 
 ## Basic commands
 
-### email-send (alias: esend)
+### send (alias: esend)
 
-Purpose: Send a single email (up to 3 recipients). Use `email-bulk` for larger lists.
+Purpose: Send a single email. Use `bulk` for larger lists.
 
 Synopsis:
 
 ```bash
-email-send <to> <subject> <body> [html]
+email-cli send <to> <subject> <body> [html]
+email-cli esend <to> <subject> <body> [html]  # Using alias
 ```
 
 Options:
 
-- None (positional arguments)
+- `<to>` — Recipient email address (comma-separated for multiple)
+- `<subject>` — Email subject
+- `<body>` — Email body text
+- `[html]` — Optional HTML content
 
 Examples:
 
 ```bash
-email-send "user@example.com" "Meeting" "Here is the agenda"
-esend "user1@example.com,user2@example.com" "Update" "Important update"
+email-cli send "user@example.com" "Meeting" "Here is the agenda"
+email-cli esend "user1@example.com,user2@example.com" "Update" "Important update"
 ```
 
 ---
 
-### email-read (alias: eread)
+### read (alias: eread)
 
 Purpose: Read recent emails from the inbox.
 
 Synopsis:
 
 ```bash
-email-read [count]
+email-cli read [count]
+email-cli eread [count]  # Using alias
 ```
 
 Options:
 
-- `count` — Number of emails to retrieve (default: 10)
+- `[count]` — Number of emails to retrieve (default: 10)
 
 Examples:
 
 ```bash
-eread
-eread 5
+email-cli read
+email-cli read 5
+email-cli eread 10
 ```
 
 ---
 
-### email-get (alias: eget)
+### get (alias: eget)
 
-Purpose: Get full details of a single email by id.
+Purpose: Get full details of a single email by ID.
 
 Synopsis:
 
 ```bash
-email-get <email_id>
+email-cli get <emailId>
+email-cli eget <emailId>  # Using alias
 ```
 
 Example:
 
 ```bash
-email-get 12345
+email-cli get 12345
+email-cli eget 12345
 ```
 
 ---
 
-### email-delete (alias: edelete)
+### delete (alias: edelete)
 
-Purpose: Permanently delete an email by id.
+Purpose: Permanently delete email(s) by ID.
 
 Synopsis:
 
 ```bash
-email-delete <email_id> [--force|-f]
+email-cli delete <emailIds...> [--force|-f]
+email-cli edelete <emailIds...> [--force|-f]  # Using alias
 ```
 
 Options:
 
-- `--force`, `-f` — skip confirmation
+- `<emailIds...>` — One or more email IDs to delete
+- `--force`, `-f` — Skip confirmation prompt
 
-Example:
+Examples:
 
 ```bash
-email-delete 12345
+email-cli delete 12345
+email-cli delete 12345 67890 --force
+email-cli edelete 12345
 ```
 
 ---
 
-### email-mark-read (alias: emarkread)
+### mark-read (alias: emarkread)
 
-Purpose: Mark an email read or unread.
+Purpose: Mark an email as read or unread.
 
 Synopsis:
 
 ```bash
-email-mark-read <email_id> <true|false>
+email-cli mark-read <emailId> [status]
+email-cli emarkread <emailId> [status]  # Using alias
+```
+
+Options:
+
+- `<emailId>` — Email ID
+- `[status]` — Read status (true/false, default: true)
+
+Examples:
+
+```bash
+email-cli mark-read 12345 true
+email-cli mark-read 12345 false
+email-cli emarkread 12345
+```
+
+---
+
+### list
+
+Purpose: List all available commands.
+
+Synopsis:
+
+```bash
+email-cli list
 ```
 
 Example:
 
 ```bash
-email-mark-read 12345 true
+email-cli list
 ```
 
 ---
  
 ## Advanced commands
 
-### email-search (alias: esearch)
+### search (alias: esearch)
 
-Purpose: Search emails with filters.
-
-Synopsis:
-
-```bash
-email-search [--from <email>] [--to <email>] [--subject <text>] [--since <date>] [--before <date>] [--seen <true|false>] [--limit <n>]
-```
-
-Example:
-
-```bash
-email-search --from "boss@company.com" --since "2024-01-01"
-```
-
----
-
-### email-attach (alias: eattach)
-
-Purpose: Send attachments with an email. Supports multiple comma-separated file paths.
+Purpose: Search emails with advanced filters and pagination.
 
 Synopsis:
 
 ```bash
-email-attach <to> <subject> <body> <attachment-paths> [attachment-names]
+email-cli search [options]
+email-cli esearch [options]  # Using alias
 ```
 
-Example:
+Options:
+
+- `--from <email>` — Filter by sender email
+- `--to <email>` — Filter by recipient email
+- `--subject <text>` — Filter by subject keywords
+- `--since <date>` — Filter emails since date (ISO format)
+- `--before <date>` — Filter emails before date (ISO format)
+- `--seen <boolean>` — Filter by read status (true/false)
+- `--flagged <boolean>` — Filter by flagged status (true/false)
+- `--page <number>` — Page number (default: 1)
+- `--limit <number>` — Results per page (default: 10)
+
+Examples:
 
 ```bash
-email-attach "team@company.com" "Files" "See attachments" "./a.pdf,./b.png"
+email-cli search --from "boss@company.com" --since "2024-01-01"
+email-cli search --subject "report" --seen false
+email-cli esearch --from "team@company.com" --limit 20
 ```
 
 ---
 
-### email-forward (alias: eforward)
+### attach (alias: eattach)
 
-Purpose: Forward an existing email to new recipients.
+Purpose: Send an email with a file attachment.
 
 Synopsis:
 
 ```bash
-email-forward <email_id> <to> [message]
+email-cli attach <to> <subject> <body> <filePath> [attachmentName]
+email-cli eattach <to> <subject> <body> <filePath> [attachmentName]  # Using alias
 ```
 
-Example:
+Options:
+
+- `<to>` — Recipient email address
+- `<subject>` — Email subject
+- `<body>` — Email body
+- `<filePath>` — Path to attachment file
+- `[attachmentName]` — Optional custom attachment name
+
+Examples:
 
 ```bash
-email-forward 12345 "colleague@company.com" "Please review"
+email-cli attach "team@company.com" "Report" "See attached" "./report.pdf"
+email-cli attach "client@example.com" "Invoice" "Your invoice" "./invoice.pdf" "Invoice_Dec2025.pdf"
+email-cli eattach "user@example.com" "Files" "Documents" "./doc.pdf"
 ```
 
 ---
 
-### email-reply (alias: ereply)
+### forward (alias: eforward)
+
+Purpose: Forward an existing email to another recipient.
+
+Synopsis:
+
+```bash
+email-cli forward <emailId> <to> [message]
+email-cli eforward <emailId> <to> [message]  # Using alias
+```
+
+Options:
+
+- `<emailId>` — Email ID to forward
+- `<to>` — Forward to email address
+- `[message]` — Optional message to add
+
+Examples:
+
+```bash
+email-cli forward 12345 "colleague@company.com" "Please review"
+email-cli forward 12345 "team@company.com"
+email-cli eforward 12345 "boss@company.com" "FYI"
+```
+
+---
+
+### reply (alias: ereply)
 
 Purpose: Reply to an existing email.
 
 Synopsis:
 
 ```bash
-email-reply <email_id> <message>
+email-cli reply <emailId> <message>
+email-cli ereply <emailId> <message>  # Using alias
 ```
 
-Example:
+Options:
 
-```bash
-email-reply 12345 "Thanks, I'll review"
-```
-
----
-
-### email-stats (alias: estats)
-
-Purpose: Show account statistics (unread, total, top senders).
-
-Synopsis:
-
-```bash
-email-stats
-```
-
-Example:
-
-```bash
-email-stats
-```
-
----
-
-### email-draft (alias: edraft)
-
-Purpose: Create a draft message.
-
-Synopsis:
-
-```bash
-email-draft <to> <subject> <body>
-```
-
-Example:
-
-```bash
-email-draft "client@example.com" "Draft" "Work in progress"
-```
-
----
-
-### email-schedule (alias: eschedule)
-
-Purpose: Schedule an email for future delivery.
-
-Synopsis:
-
-```bash
-email-schedule <to> <subject> <body> <time>
-```
+- `<emailId>` — Email ID to reply to
+- `<message>` — Reply message
 
 Examples:
 
 ```bash
-email-schedule "team@company.com" "Reminder" "Meeting at 3" "2024-12-31T09:00:00Z"
-email-schedule "client@example.com" "Follow-up" "Quick note" "+2h"
+email-cli reply 12345 "Thanks, I'll review"
+email-cli reply 12345 "Got it, will do"
+email-cli ereply 12345 "Thank you"
 ```
 
 ---
 
-### email-bulk (alias: ebulk)
+### stats (alias: estats)
 
-Purpose: Send personalized/bulk emails from a file or comma-separated list.
+Purpose: Get email account statistics (total, unread, flagged, recent).
 
 Synopsis:
 
 ```bash
-email-bulk <recipients|file> <subject> <body>
+email-cli stats
+email-cli estats  # Using alias
 ```
 
-Notes:
+Example:
 
-- If the first argument contains an `@` and commas, it's treated as a comma-separated list of recipients.
-- If the first argument is a path to a file, it will read recipients line-by-line.
+```bash
+email-cli stats
+email-cli estats
+```
+
+---
+
+### draft (alias: edraft)
+
+Purpose: Create an email draft.
+
+Synopsis:
+
+```bash
+email-cli draft <to> <subject> <body>
+email-cli edraft <to> <subject> <body>  # Using alias
+```
+
+Options:
+
+- `<to>` — Recipient email address
+- `<subject>` — Email subject
+- `<body>` — Email body
 
 Examples:
 
 ```bash
-email-bulk recipients.txt "Newsletter" "Content"
-email-bulk user1@example.com,user2@example.com "Update" "Content"
+email-cli draft "client@example.com" "Draft" "Work in progress"
+email-cli edraft "team@company.com" "Meeting" "Agenda TBD"
+```
+
+---
+
+### schedule (alias: eschedule)
+
+Purpose: Schedule an email for later delivery.
+
+Synopsis:
+
+```bash
+email-cli schedule <to> <subject> <body> <scheduledTime>
+email-cli eschedule <to> <subject> <body> <scheduledTime>  # Using alias
+```
+
+Options:
+
+- `<to>` — Recipient email address
+- `<subject>` — Email subject
+- `<body>` — Email body
+- `<scheduledTime>` — Scheduled time in ISO format (e.g., 2025-12-25T10:00:00Z)
+
+Examples:
+
+```bash
+email-cli schedule "client@example.com" "Follow-up" "Checking in" "2025-12-25T10:00:00Z"
+email-cli eschedule "team@company.com" "Reminder" "Meeting tomorrow" "2025-12-24T09:00:00Z"
+```
+
+---
+
+### bulk (alias: ebulk)
+
+Purpose: Send bulk emails to multiple recipients.
+
+Synopsis:
+
+```bash
+email-cli bulk <recipients> <subject> <body>
+email-cli ebulk <recipients> <subject> <body>  # Using alias
+```
+
+Options:
+
+- `<recipients>` — Comma-separated list of email addresses or path to a file with one email per line
+- `<subject>` — Email subject
+- `<body>` — Email body
+
+Examples:
+
+```bash
+email-cli bulk "user1@example.com,user2@example.com" "Newsletter" "Monthly update"
+email-cli bulk recipients.txt "Announcement" "Important news"
+email-cli ebulk "team@company.com,client@example.com" "Update" "Project status"
 ```
 
 ## Contacts
 
 ### contact-add (alias: cadd)
 
-Purpose: Add a contact to address book.
+Purpose: Add a new contact to your address book.
 
 Synopsis:
 
 ```bash
-contact-add <name> <email> [group]
+email-cli contact-add <name> <email> [group]
+email-cli cadd <name> <email> [group]  # Using alias
 ```
 
-Example:
+Options:
+
+- `<name>` — Contact name
+- `<email>` — Contact email address
+- `[group]` — Optional group name to assign contact to
+
+Examples:
 
 ```bash
-contact-add "Jane Smith" "jane@example.com" "clients"
+email-cli contact-add "Jane Smith" "jane@example.com" "clients"
+email-cli cadd "John Doe" "john@example.com" "Work"
+email-cli contact-add "Bob Johnson" "bob@company.com"
 ```
 
 ---
 
 ### contact-list (alias: clist)
 
-Purpose: List contacts.
+Purpose: List all contacts in your address book.
 
 Synopsis:
 
 ```bash
-contact-list [limit]
+email-cli contact-list [limit]
+email-cli clist [limit]  # Using alias
 ```
 
-Example:
+Options:
+
+- `[limit]` — Optional maximum number of contacts to display (default: 20)
+
+Examples:
 
 ```bash
-contact-list 50
+email-cli contact-list
+email-cli clist 50
+email-cli contact-list 100
 ```
 
 ---
 
 ### contact-search (alias: csearch)
 
-Purpose: Search contacts.
+Purpose: Search for contacts by name or email.
 
 Synopsis:
 
 ```bash
-contact-search <query>
+email-cli contact-search <query>
+email-cli csearch <query>  # Using alias
 ```
 
-Example:
+Options:
+
+- `<query>` — Search query (searches in contact names and email addresses)
+
+Examples:
 
 ```bash
-contact-search "company.com"
+email-cli contact-search "john"
+email-cli csearch "@company.com"
+email-cli contact-search "smith"
 ```
 
 ---
 
 ### contact-group (alias: cgroup)
 
-Purpose: Show contacts in a specific group.
+Purpose: List all contacts in a specific group.
 
 Synopsis:
 
 ```bash
-contact-group <group>
+email-cli contact-group <group>
+email-cli cgroup <group>  # Using alias
 ```
 
-Example:
+Options:
+
+- `<group>` — Group name to filter contacts by
+
+Examples:
 
 ```bash
-contact-group "vip"
+email-cli contact-group "vip"
+email-cli cgroup "clients"
+email-cli contact-group "Work"
 ```
 
 ---
 
 ### contact-update (alias: cupdate)
 
-Purpose: Update an existing contact field.
+Purpose: Update an existing contact's information.
 
 Synopsis:
 
 ```bash
-contact-update <contact_id> <field> <value>
+email-cli contact-update <contactId> <field> <value>
+email-cli cupdate <contactId> <field> <value>  # Using alias
 ```
 
-Example:
+Options:
+
+- `<contactId>` — Contact identifier
+- `<field>` — Field to update (e.g., "email", "name", "group")
+- `<value>` — New value for the field
+
+Examples:
 
 ```bash
-contact-update contact_123 email "new@example.com"
+email-cli contact-update contact_123 email "newemail@example.com"
+email-cli cupdate contact_456 name "Jane Doe"
+email-cli contact-update contact_789 group "VIP"
 ```
 
 ---
 
 ### contact-delete (alias: cdelete)
 
-Purpose: Delete a contact.
+Purpose: Delete a contact from your address book.
 
 Synopsis:
 
 ```bash
-contact-delete <contact_id>
+email-cli contact-delete <contactId>
+email-cli cdelete <contactId>  # Using alias
 ```
 
-Example:
+Options:
+
+- `<contactId>` — Contact identifier to delete
+
+Examples:
 
 ```bash
-contact-delete contact_123
+email-cli contact-delete contact_123
+email-cli cdelete contact_456
 ```
 
 ## Utility and helper commands
@@ -422,14 +569,14 @@ Purpose: Utility commands for inspecting available commands and getting help.
 Synopsis:
 
 ```bash
-list
+email-cli list
 ```
 
-Use `list` to show an organized list of all commands with brief descriptions.
+Use `email-cli list` to show an organized list of all commands with brief descriptions.
 
 ### README & help
 
-- Use `--help` with any command for in-command usage.
+- Use `--help` with any command for in-command usage: `email-cli <command> --help`
 - Many commands accept `--limit`, `--verbose`, and `--dry-run` flags where applicable.
 
 ---
@@ -439,19 +586,25 @@ Use `list` to show an organized list of all commands with brief descriptions.
 - Send a quick email:
 
 ```bash
-esend "user@example.com" "Hello" "Quick note"
+email-cli send "user@example.com" "Hello" "Quick note"
+# or using alias
+email-cli esend "user@example.com" "Hello" "Quick note"
 ```
 
 - Bulk send from file:
 
 ```bash
-email-bulk ./contacts/team.txt "Update" "Important message"
+email-cli bulk ./contacts/team.txt "Update" "Important message"
+# or using alias
+email-cli ebulk recipients.txt "Newsletter" "Content"
 ```
 
 - Add a contact:
 
 ```bash
-cadd "John Doe" "john@example.com" "work"
+email-cli contact-add "John Doe" "john@example.com" "work"
+# or using alias
+email-cli cadd "John Doe" "john@example.com" "work"
 ```
 
 ---

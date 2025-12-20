@@ -39,32 +39,88 @@ node install.js
 #### Manual Verification
 ```powershell
 # Test core commands:
-email-send --help
-email-read --help
-contact-add --help
+email-cli send --help
+email-cli read --help
+email-cli contact-add --help
 
 # Test aliases:
-esend --help
-eread --help
-cadd --help
+email-cli esend --help
+email-cli eread --help
+email-cli cadd --help
 ```
 
 ### Expected Behavior
 
-All commands should work exactly like on Linux/macOS:
+All commands work through `email-cli` command with subcommands:
 
 ```powershell
 # Send email
-email-send "user@example.com" "Test Subject" "Test message"
+email-cli send "user@example.com" "Test Subject" "Test message"
 
 # Read emails  
-email-read 5
+email-cli read 5
 
-# Add contact
-contact-add "John Doe" "john@example.com" "work"
+# Get specific email
+email-cli get EMAIL_ID
+
+# Delete emails
+email-cli delete EMAIL_ID
+
+# Mark as read
+email-cli mark-read EMAIL_ID
 
 # Search emails
-email-search --from "boss@company.com"
+email-cli search --from "boss@company.com" --subject "report"
+
+# Forward email
+email-cli forward EMAIL_ID "recipient@example.com" "See below"
+
+# Reply to email
+email-cli reply EMAIL_ID "Thanks for your message"
+
+# Email with attachment
+email-cli attach "user@example.com" "Report" "See attached" "./report.pdf"
+
+# Get statistics
+email-cli stats
+
+# Create draft
+email-cli draft "user@example.com" "Subject" "Body"
+
+# Schedule email
+email-cli schedule "user@example.com" "Subject" "Body" "2025-12-25T10:00:00Z"
+
+# Bulk send
+email-cli bulk recipients.txt "Subject" "Message"
+
+# Add contact
+email-cli contact-add "John Doe" "john@example.com" --group "work"
+
+# List contacts
+email-cli contact-list 10
+
+# Search contacts
+email-cli contact-search "john"
+
+# Update contact
+email-cli contact-update CONTACT_ID --name "John Smith" --group "friends"
+
+# Delete contact
+email-cli contact-delete CONTACT_ID
+
+# Get contacts by group
+email-cli contact-group "work"
+```
+
+**Using Aliases:**
+```powershell
+# Short aliases for common commands
+email-cli esend "user@example.com" "Subject" "Body"
+email-cli eread 10
+email-cli esearch --from "boss@example.com"
+email-cli cadd "Jane Doe" "jane@example.com"
+email-cli clist
+email-cli csearch "jane"
 ```
 
 ### Windows-Specific Considerations
@@ -156,13 +212,13 @@ The CLI should perform identically to Linux/WSL:
 
 ✅ **Installation Successful When:**
 - All test commands show help text
-- `email-send --help` displays usage information
-- Both full names and aliases work (`email-read` and `eread`)
+- `email-cli send --help` displays usage information
+- Both full commands and aliases work (`email-cli read` and `email-cli eread`)
 - No "command not found" errors
 
 ✅ **Ready for Use When:**
-- Can run: `email-send user@example.com "test" "message"`
-- Environment variables loaded from `.env`
+- Can run: `email-cli send user@example.com "test" "message"`
+- Environment variables loaded from `.env` or system environment
 - Email operations complete successfully
 
 ### Next Steps After Windows Installation

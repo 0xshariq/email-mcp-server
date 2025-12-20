@@ -44,6 +44,24 @@ chmod +x setup-symlinks.sh
 
 ## 🚀 Usage (Same on All Platforms)
 
+Once installed, configure your environment variables:
+
+**📖 [Complete Configuration Guide](CONFIGURATION.md)** - Essential reading for setup!
+
+### Quick Configuration
+
+**Local Development:**
+```bash
+cp .env.example .env
+nano .env  # Add your credentials
+```
+
+**Global Installation:**
+- **Linux**: Add exports to `~/.bashrc`
+- **macOS**: Add exports to `~/.zshrc` 
+- **Windows**: Set System Environment Variables
+
+### Testing Commands
 ```bash
 # Send email
 email-send recipient@example.com "Subject" "Message body"
@@ -79,9 +97,9 @@ email-search --from "sender@example.com"
 
 Test installation on any platform:
 ```bash
-email-send --help
-email-list --help
-contact-add --help
+email-cli send --help
+email-cli list --help
+email-cli contact-add --help
 ```
 
 All commands should work identically across platforms!

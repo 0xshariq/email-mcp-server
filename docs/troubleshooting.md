@@ -1,8 +1,20 @@
 # Troubleshooting Guide
 
-Quick solutions to common issues with Email MCP Server CLI.
+Quick solutions to common issues with Email MCP Server CLI and MCP server.
 
-## 🚨 Common Issues
+## 📋 Table of Contents
+
+- [Installation Issues](#installation-issues)
+- [Configuration Issues](#configuration-issues)
+- [Authentication Issues](#authentication-issues)
+- [Connection Issues](#connection-issues)
+- [Command Issues](#command-issues)
+- [Performance Issues](#performance-issues)
+- [Platform-Specific Issues](#platform-specific-issues)
+
+---
+
+## 🚨 Installation Issues
 
 ### ❌ Cross-Platform Installation Problems
 
@@ -27,8 +39,8 @@ $ wsl email-send user@example.com "test" "message"
 npm install -g .
 
 # Test on any platform
-email-send --help
-email-list --help
+email-cli send --help
+email-cli list --help
 ```
 
 **Method 2: Platform-Specific Scripts**
@@ -62,17 +74,17 @@ chmod +x setup-symlinks.sh
 **Simple Test:**
 ```powershell
 # After installation, test in PowerShell:
-email-send --help
-email-read --help 
-contact-add --help
-esend --help
+email-cli send --help
+email-cli read --help
+email-cli contact-add --help
+email-cli esend --help
 ```
 
 **Expected Result:** All commands should work identically to WSL/Linux.
 
 ### ❌ CLI Commands Not Found
 
-**Problem:** `email-send: command not found` after installation
+**Problem:** `email-cli: command not found` after installation
 
 **Quick Fix:**
 ```bash
@@ -80,13 +92,13 @@ esend --help
 npm install -g .
 
 # Test it works  
-email-send --help
+email-cli send --help
 ```
 
 **Alternative (Manual):**
 ```bash
 # Use the CLI wrapper
-node email-cli.js email-send user@example.com "subject" "message"
+node email-cli.js send user@example.com "subject" "message"
 ```
 
 ### ❌ Commands Run But No Output
@@ -99,8 +111,113 @@ node email-cli.js email-send user@example.com "subject" "message"
 npm run build
 
 # Test with verbose help
-email-send --help
+email-cli send --help
 ```
+
+---
+
+## ⚙️ Configuration Issues
+
+### ❌ Environment Variables Not Loading
+
+**Problem:** CLI or server can't find environment variables
+
+**Diagnosis:**
+```bash
+# Check if variables are set
+echo $EMAIL_USER          # Linux/macOS
+echo %EMAIL_USER%         # Windows CMD
+echo $env:EMAIL_USER      # Windows PowerShell
+
+# Check all email-related variables
+env | grep EMAIL          # Linux/macOS
+Get-ChildItem Env: | Where-Object Name -like "*EMAIL*"  # PowerShell
+```
+
+**Solutions:**
+
+**Local Development:**
+```bash
+# 1. Check .env file exists
+ls -la .env
+
+# 2. Verify .env content
+cat .env
+
+# 3. Copy from example if missing
+cp .env.example .env
+nano .env
+```
+
+**Global Installation:**
+
+**Linux/macOS:**
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+export EMAIL_USER="your-email@gmail.com"
+export EMAIL_PASS="your-app-password"
+export SMTP_HOST="smtp.gmail.com"
+export SMTP_PORT="587"
+export IMAP_HOST="imap.gmail.com"
+export IMAP_PORT="993"
+
+# Reload shell
+source ~/.bashrc  # or source ~/.zshrc
+```
+
+**Windows:**
+```powershell
+# Option 1: System Environment Variables (GUI)
+# Win + X → System → Advanced → Environment Variables
+
+# Option 2: PowerShell Profile
+notepad $PROFILE
+# Add: $env:EMAIL_USER = "your-email@gmail.com"
+
+# Option 3: setx (requires terminal restart)
+setx EMAIL_USER "your-email@gmail.com"
+```
+
+📖 **[Complete Configuration Guide](CONFIGURATION.md)**
+
+### ❌ Configuration Works for CLI but not MCP Server
+
+**Problem:** CLI works but MCP server can't authenticate
+
+**Solution:**
+The MCP server needs environment variables in its config:
+
+```json
+{
+  "mcpServers": {
+    "email": {
+      "command": "node",
+      "args": ["/path/to/email-mcp-server/dist/server/index.js"],
+      "env": {
+        "EMAIL_USER": "your-email@gmail.com",
+        "EMAIL_PASS": "your-app-password",
+        "SMTP_HOST": "smtp.gmail.com",
+        "SMTP_PORT": "587",
+        "IMAP_HOST": "imap.gmail.com",
+        "IMAP_PORT": "993"
+      }
+    }
+  }
+}
+```
+
+**Windows Path Note:** Use double backslashes or forward slashes:
+```json
+"args": ["C:\\path\\to\\server\\index.js"]
+// or
+"args": ["C:/path/to/server/index.js"]
+```
+
+---
+
+## 🔐 Authentication Issues
+
+## 🔐 Authentication Issues
 
 ### ❌ Gmail Authentication Failed
 
@@ -109,11 +226,52 @@ email-send --help
 **Quick Fix:**
 ```bash
 # 1. Enable 2FA on Gmail
-# 2. Generate App Password: https://myaccount.google.com/apppasswords  
-# 3. Update .env file:
+# Go to: https://myaccount.google.com/security
+
+# 2. Generate App Password
+# Go to: https://myaccount.google.com/apppasswords
+# Select: Mail → Your device → Generate
+
+# 3. Update configuration
+# Local: Edit .env file
 EMAIL_USER=your-email@gmail.com
-EMAIL_PASS=xxxx-xxxx-xxxx-xxxx  # Use app password, not regular password
+EMAIL_PASS=xxxx-xxxx-xxxx-xxxx  # 16-character app password
+
+# Global: Update environment variables (see Configuration section)
 ```
+
+**Common Mistakes:**
+- ❌ Using regular Gmail password instead of App Password
+- ❌ Not enabling 2-Factor Authentication first
+- ❌ Copying App Password with spaces (should be: xxxx-xxxx-xxxx-xxxx)
+
+### ❌ Outlook/Office 365 Authentication Failed
+
+**Solution:**
+```bash
+EMAIL_USER=your-email@outlook.com
+EMAIL_PASS=your-app-password  # Generate from account security
+SMTP_HOST=smtp-mail.outlook.com
+SMTP_PORT=587
+IMAP_HOST=outlook.office365.com
+IMAP_PORT=993
+```
+
+### ❌ Yahoo Mail Authentication Failed
+
+**Solution:**
+```bash
+EMAIL_USER=your-email@yahoo.com
+EMAIL_PASS=your-app-password  # From account security settings
+SMTP_HOST=smtp.mail.yahoo.com
+SMTP_PORT=587
+IMAP_HOST=imap.mail.yahoo.com
+IMAP_PORT=993
+```
+
+---
+
+## 🌐 Connection Issues
 
 ### ❌ Environment Variables Missing
 
@@ -168,7 +326,7 @@ npm run build
 ### ❌ Email Operations Slow
 ```bash
 # Reduce batch size for faster response
-email-read 5    # Instead of 50
+email-cli read 5    # Instead of 50
 ```
 
 ### ❌ Large Attachments Fail  
@@ -182,22 +340,46 @@ ls -lh /path/to/file
 ### ❌ Invalid Email Format
 ```bash
 # Multiple recipients format:
-email-send "user1@example.com,user2@example.com" "subject" "body"
+email-cli send "user1@example.com,user2@example.com" "subject" "body"
 ```
 
-## 📞 Need More Help?
+## 📞 Additional Resources
+
+**Documentation:**
+- 📖 [Configuration Guide](CONFIGURATION.md) - Comprehensive environment setup
+- 🔧 [Installation Guide](INSTALL.md) - Platform-specific installation
+- 📚 [CLI Reference](CLI_REFERENCE.md) - Complete command documentation
+- 🏗️ [Architecture](architecture.md) - Technical details
 
 **Quick Diagnostics:**
 ```bash
 # Check system status  
 node --version          # Should be 18+
-ping smtp.gmail.com     # Test connectivity
-email-send --help       # Test CLI works
+npm --version           # Check npm
+ping smtp.gmail.com     # Test SMTP connectivity
+ping imap.gmail.com     # Test IMAP connectivity
+
+# Test CLI
+email-cli --version
+email-cli send --help
+
+# Verify environment variables
+env | grep EMAIL        # Linux/macOS
+set | findstr EMAIL     # Windows CMD
+Get-ChildItem Env: | Where-Object Name -like "*EMAIL*"  # PowerShell
 ```
 
 **Get Support:**
-- 📖 Detailed docs: `docs/CLI_USAGE.md`
 - 🐛 Report issues: [GitHub Issues](https://github.com/0xshariq/email-mcp-server/issues)  
-- 💡 For complex setups: `docs/INSTALL.md`
+- 💬 Discussions: [GitHub Discussions](https://github.com/0xshariq/email-mcp-server/discussions)
+- 📖 Complete docs: All guides in `docs/` folder
 
-**Remember:** Never share passwords or sensitive info in issue reports!
+**Remember:** 
+- Never share passwords or App Passwords in issue reports!
+- Use environment variable names (e.g., `EMAIL_PASS`) instead of actual values
+- Check [CONFIGURATION.md](CONFIGURATION.md) first for setup issues
+
+---
+
+**Last Updated:** December 20, 2025  
+**Version:** 2.0.0
