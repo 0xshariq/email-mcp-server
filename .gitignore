@@ -1,7 +1,6 @@
 # Build outputs
 dist/
 build/
-lib/
 *.tsbuildinfo
 
 # Dependencies
