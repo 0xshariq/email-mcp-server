@@ -8,6 +8,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import os from 'os';
 import chalk from 'chalk';
 import ora, { Ora } from 'ora';
 import figures from 'figures';
@@ -67,13 +68,66 @@ export interface HelpOption {
     description: string;
 }
 
+/**
+ * Get the global configuration directory based on platform
+ */
+export function getGlobalConfigDir(): string {
+    const homeDir = os.homedir();
+    // All platforms: ~/.email
+    return path.join(homeDir, '.email');
+}
+
+/**
+ * Get the global .env file path
+ */
+export function getGlobalEnvPath(): string {
+    return path.join(getGlobalConfigDir(), '.env');
+}
+
 // Load environment variables from .env file
 export function loadEnv(): EnvVars {
-    const envPath = path.join(__dirname, '..', '.env');
+    let envPath: string | null = null;
     
-    if (!fs.existsSync(envPath)) {
+    // Priority 1: Check global configuration directory
+    const globalEnvPath = getGlobalEnvPath();
+    if (fs.existsSync(globalEnvPath)) {
+        envPath = globalEnvPath;
+        console.log(chalk.gray(`Using global config: ${globalEnvPath}`));
+    }
+    
+    // Priority 2: Check current working directory
+    if (!envPath) {
+        const localEnvPath = path.join(process.cwd(), '.env');
+        if (fs.existsSync(localEnvPath)) {
+            envPath = localEnvPath;
+            console.log(chalk.gray(`Using local config: ${localEnvPath}`));
+        }
+    }
+    
+    // Priority 3: Check project root (for development)
+    if (!envPath) {
+        // In dist: dist/cli/utils.js -> ../../.env (project root)
+        const distEnvPath = path.join(__dirname, '..', '..', '.env');
+        if (fs.existsSync(distEnvPath)) {
+            envPath = distEnvPath;
+            console.log(chalk.gray(`Using project root config: ${distEnvPath}`));
+        }
+    }
+    
+    // Priority 4: Check one level up (for source development)
+    if (!envPath) {
+        // In source: cli/utils.ts -> ../.env (project root)
+        const sourceEnvPath = path.join(__dirname, '..', '.env');
+        if (fs.existsSync(sourceEnvPath)) {
+            envPath = sourceEnvPath;
+            console.log(chalk.gray(`Using source config: ${sourceEnvPath}`));
+        }
+    }
+    
+    if (!envPath) {
         console.error(chalk.red('❌ .env file not found.'));
-        console.error(chalk.yellow('💡 Please copy .env.example to .env and configure your email settings.'));
+        console.error(chalk.yellow('💡 Run setup to configure your email settings:'));
+        console.error(chalk.cyan('   email-cli setup'));
         process.exit(1);
     }
     

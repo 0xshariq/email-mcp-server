@@ -9,9 +9,9 @@
 import * as readline from 'node:readline';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as os from 'os';
 import chalk from 'chalk';
 import figures from 'figures';
+import { getGlobalConfigDir, getGlobalEnvPath } from './utils.js';
 
 // UI Elements
 const pipe = chalk.gray('│');
@@ -22,7 +22,6 @@ const check = chalk.green(figures.tick);
 const cross = chalk.red(figures.cross);
 const pointer = chalk.cyan(figures.pointer);
 const info = chalk.cyan(figures.info);
-const warning = chalk.yellow(figures.warning);
 const bullet = chalk.cyan(figures.bullet);
 
 interface EmailConfig {
@@ -151,122 +150,26 @@ function detectProvider(email: string): { smtp: string; imap: string; smtpPort: 
 }
 
 /**
- * Get shell config file path based on platform
+ * Save configuration to .env file
+ * @param config Email configuration
+ * @param global If true, save to global config directory; if false, save to current directory
  */
-function getShellConfigPath(): string | null {
-    const platform = os.platform();
-    const homeDir = os.homedir();
-    
-    if (platform === 'win32') {
-        return null; // Windows uses registry/system env vars
-    }
-    
-    // Check for shell type
-    const shell = process.env.SHELL || '';
-    
-    if (shell.includes('zsh')) {
-        return path.join(homeDir, '.zshrc');
-    } else if (shell.includes('bash')) {
-        return path.join(homeDir, '.bashrc');
-    } else if (fs.existsSync(path.join(homeDir, '.zshrc'))) {
-        return path.join(homeDir, '.zshrc');
-    } else if (fs.existsSync(path.join(homeDir, '.bashrc'))) {
-        return path.join(homeDir, '.bashrc');
-    } else {
-        return path.join(homeDir, '.profile');
-    }
-}
-
-/**
- * Save configuration to shell profile (Linux/macOS)
- */
-function saveToShellProfile(config: EmailConfig): boolean {
-    const configPath = getShellConfigPath();
-    
-    if (!configPath) {
-        return false;
-    }
-    
+function saveToEnvFile(config: EmailConfig, global: boolean = false): boolean {
     try {
-        let content = '';
+        let envPath: string;
         
-        // Read existing content
-        if (fs.existsSync(configPath)) {
-            content = fs.readFileSync(configPath, 'utf8');
-        }
-        
-        // Remove old email config if exists
-        const emailConfigRegex = /# Email MCP Server Configuration - Start[\s\S]*?# Email MCP Server Configuration - End\n/g;
-        content = content.replace(emailConfigRegex, '');
-        
-        // Add new configuration
-        const configBlock = `
-# Email MCP Server Configuration - Start
-export EMAIL_USER="${config.EMAIL_USER}"
-export EMAIL_PASS="${config.EMAIL_PASS}"
-export SMTP_HOST="${config.SMTP_HOST}"
-export SMTP_PORT="${config.SMTP_PORT}"
-export IMAP_HOST="${config.IMAP_HOST}"
-export IMAP_PORT="${config.IMAP_PORT}"
-export EMAIL_FROM="${config.EMAIL_FROM || config.EMAIL_USER}"
-export IMAP_TLS="${config.IMAP_TLS || 'true'}"
-export SMTP_SECURE="${config.SMTP_SECURE || 'false'}"
-# Email MCP Server Configuration - End
-`;
-        
-        content += configBlock;
-        
-        // Write back to file
-        fs.writeFileSync(configPath, content, 'utf8');
-        
-        return true;
-    } catch (error) {
-        console.error(chalk.red('Error saving to shell profile:'), error);
-        return false;
-    }
-}
-
-/**
- * Save configuration to Windows registry/PowerShell profile
- */
-function saveToWindows(config: EmailConfig): boolean {
-    try {
-        const { execSync } = require('child_process');
-        
-        // Set user environment variables using setx
-        const vars = [
-            ['EMAIL_USER', config.EMAIL_USER],
-            ['EMAIL_PASS', config.EMAIL_PASS],
-            ['SMTP_HOST', config.SMTP_HOST],
-            ['SMTP_PORT', config.SMTP_PORT],
-            ['IMAP_HOST', config.IMAP_HOST],
-            ['IMAP_PORT', config.IMAP_PORT],
-            ['EMAIL_FROM', config.EMAIL_FROM || config.EMAIL_USER],
-            ['IMAP_TLS', config.IMAP_TLS || 'true'],
-            ['SMTP_SECURE', config.SMTP_SECURE || 'false']
-        ];
-        
-        for (const [key, value] of vars) {
-            try {
-                execSync(`setx ${key} "${value}"`, { encoding: 'utf8', stdio: 'pipe' });
-            } catch (err) {
-                console.error(chalk.yellow(`Warning: Failed to set ${key}`));
+        if (global) {
+            // Save to global configuration directory
+            const configDir = getGlobalConfigDir();
+            // Create directory if it doesn't exist
+            if (!fs.existsSync(configDir)) {
+                fs.mkdirSync(configDir, { recursive: true });
             }
+            envPath = getGlobalEnvPath();
+        } else {
+            // Save to current working directory
+            envPath = path.join(process.cwd(), '.env');
         }
-        
-        return true;
-    } catch (error) {
-        console.error(chalk.red('Error saving to Windows registry:'), error);
-        return false;
-    }
-}
-
-/**
- * Save configuration to .env file (local development)
- */
-function saveToEnvFile(config: EmailConfig): boolean {
-    try {
-        const envPath = path.join(process.cwd(), '.env');
         
         let content = '';
         
@@ -409,16 +312,12 @@ export async function setup(): Promise<void> {
         console.log(`${branch} ${chalk.gray('Choose where to save your configuration:')}`);
         console.log(pipe);
         
-        const platform = os.platform();
-        const shellConfig = platform === 'win32' ? 'System Environment Variables' : getShellConfigPath();
-        
         console.log(`${branch} ${chalk.white('[1] 📁 Local (.env file)')}`);
         console.log(`${pipe}   ${arrow} ${chalk.gray('Current directory only')}`);
         console.log(`${pipe}   ${arrow} ${chalk.gray('Best for: Development, testing, project-specific config')}`);
         console.log(pipe);
         
-        console.log(`${branch} ${chalk.white('[2] 🌍 Global (System environment)')}`);
-        console.log(`${pipe}   ${arrow} ${chalk.gray(platform === 'win32' ? 'Windows Registry' : shellConfig)}`);
+        console.log(`${branch} ${chalk.white('[2] 🌍 Global (~/.email directory)')}`);        console.log(`${pipe}   ${arrow} ${chalk.gray(getGlobalEnvPath())}`);  
         console.log(`${pipe}   ${arrow} ${chalk.gray('Best for: Production, permanent installation')}`);
         console.log(pipe);
         
@@ -435,8 +334,8 @@ export async function setup(): Promise<void> {
         let success = false;
         
         if (saveChoice === '1' || saveChoice === '3') {
-            process.stdout.write(`${pipe} ${chalk.gray('Saving to .env file...')} `);
-            if (saveToEnvFile(config)) {
+            process.stdout.write(`${pipe} ${chalk.gray('Saving to local .env file...')} `);
+            if (saveToEnvFile(config, false)) {
                 console.log(check);
                 success = true;
             } else {
@@ -445,23 +344,13 @@ export async function setup(): Promise<void> {
         }
         
         if (saveChoice === '2' || saveChoice === '3') {
-            if (platform === 'win32') {
-                process.stdout.write(`${pipe} ${chalk.gray('Saving to Windows environment...')} `);
-                if (saveToWindows(config)) {
-                    console.log(check);
-                    success = true;
-                } else {
-                    console.log(cross);
-                }
+            const globalEnvPath = getGlobalEnvPath();
+            process.stdout.write(`${pipe} ${chalk.gray(`Saving to global config (${globalEnvPath})...`)} `);
+            if (saveToEnvFile(config, true)) {
+                console.log(check);
+                success = true;
             } else {
-                const configPath = getShellConfigPath();
-                process.stdout.write(`${pipe} ${chalk.gray(`Saving to ${configPath}...`)} `);
-                if (saveToShellProfile(config)) {
-                    console.log(check);
-                    success = true;
-                } else {
-                    console.log(cross);
-                }
+                console.log(cross);
             }
         }
         
@@ -476,16 +365,12 @@ export async function setup(): Promise<void> {
             console.log(chalk.bold.green('║          ✓ Setup Completed!                ║'));
             console.log(chalk.bold.green('╚════════════════════════════════════════════╝\n'));
             
-            if (saveChoice === '2' || saveChoice === '3') {
-                console.log(`${warning} ${chalk.yellow('Action Required:')}`);
-                console.log(pipe);
-                if (platform === 'win32') {
-                    console.log(`${end} ${arrow} ${chalk.white('Restart your terminal/PowerShell for changes to take effect')}\n`);
-                } else {
-                    const configPath = getShellConfigPath();
-                    console.log(`${branch} ${arrow} ${chalk.white(`Run: ${chalk.cyan(`source ${configPath}`)}`)}`);
-                    console.log(`${end} ${arrow} ${chalk.white('Or restart your terminal')}\n`);
-                }
+            if (saveChoice === '2') {
+                console.log(`${info} ${chalk.cyan('Configuration saved to:')}`);
+                console.log(`${pipe}   ${arrow} ${chalk.white(getGlobalEnvPath())}\n`);
+            } else if (saveChoice === '3') {
+                console.log(`${info} ${chalk.cyan('Configuration saved to:')}`);
+                console.log(`${pipe}   ${arrow} ${chalk.white(getGlobalEnvPath())} ${chalk.gray('(global)')}`);                console.log(`${pipe}   ${arrow} ${chalk.white(path.join(process.cwd(), '.env'))} ${chalk.gray('(local)')}\n`);
             }
             
             console.log(chalk.bold.white('📋 Next Steps:\n'));
