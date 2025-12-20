@@ -10,9 +10,22 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import ora, { Ora } from 'ora';
+import figures from 'figures';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// UI Elements - Consistent style across all commands
+export const pipe = chalk.gray('│');
+export const end = chalk.gray('└─');
+export const branch = chalk.gray('├─');
+export const arrow = chalk.cyan('→');
+export const check = chalk.green(figures.tick);
+export const cross = chalk.red(figures.cross);
+export const pointer = chalk.cyan(figures.pointer);
+export const info = chalk.cyan(figures.info);
+export const warning = chalk.yellow(figures.warning);
+export const bullet = chalk.cyan(figures.bullet);
 
 export interface EnvVars {
     [key: string]: string;

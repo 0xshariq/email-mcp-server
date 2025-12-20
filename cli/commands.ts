@@ -4,7 +4,20 @@
  */
 
 import chalk from 'chalk';
-import { initializeEmailService, initializeContactService, createSpinner, cleanEmailBody, validateAndResolveFilePath } from './utils.js';
+import { 
+    initializeEmailService, 
+    initializeContactService, 
+    createSpinner, 
+    cleanEmailBody, 
+    validateAndResolveFilePath,
+    pipe,
+    end,
+    branch,
+    check,
+    cross,
+    bullet,
+    info
+} from './utils.js';
 import fs from 'fs';
 import readline from 'readline';
 
@@ -18,7 +31,9 @@ export async function sendEmail(to: string, subject: string, body: string, html?
         const emailService = await initializeEmailService();
         spinner.succeed('Email service initialized');
 
-        console.log(chalk.dim(`📧 Using account: ${process.env.EMAIL_USER || 'Not configured'}`));
+        console.log(pipe);
+        console.log(pipe, '  ', chalk.dim(`Using: ${process.env.EMAIL_USER || 'Not configured'}`));
+        console.log(pipe);
         
         const recipients = to.split(',').map(email => email.trim()).filter(email => email.length > 0);
         
@@ -30,13 +45,18 @@ export async function sendEmail(to: string, subject: string, body: string, html?
         await emailService.sendEmail(recipients.join(','), subject, body, html);
         spinner.succeed('Email sent successfully');
 
-        console.log(chalk.green('✅ Email sent successfully!'));
-        console.log(chalk.cyan(`📧 To: ${recipients.join(', ')}`));
-        console.log(chalk.cyan(`📝 Subject: ${subject}`));
-        console.log(chalk.gray(`📄 Body: ${body.substring(0, 50)}${body.length > 50 ? '...' : ''}`));
+        console.log(pipe);
+        console.log(bullet, chalk.green('Email sent successfully!'));
+        console.log(pipe);
+        console.log(branch, chalk.cyan(`To: ${recipients.join(', ')}`));
+        console.log(branch, chalk.cyan(`Subject: ${subject}`));
+        console.log(branch, chalk.gray(`Body: ${body.substring(0, 50)}${body.length > 50 ? '...' : ''}`));
         if (html) {
-            console.log(chalk.blue('🌐 HTML content included'));
+            console.log(end, chalk.blue('HTML content included'));
+        } else {
+            console.log(end);
         }
+        console.log('');
         
         await emailService.close();
     } catch (error: any) {
@@ -58,27 +78,31 @@ export async function readEmails(count: number = 10): Promise<void> {
         spinner.succeed(`Found ${emails.length} emails`);
 
         if (emails.length === 0) {
-            console.log(chalk.yellow('📭 No emails found in your inbox.'));
+            console.log(pipe);
+            console.log(info, chalk.yellow('No emails found in your inbox'));
+            console.log('');
             await emailService.close();
             return;
         }
 
-        console.log(chalk.bold.cyan(`\n📬 Recent Emails (${emails.length} found)`));
-        console.log(chalk.gray('═'.repeat(60)));
+        console.log(pipe);
+        console.log(chalk.bold.cyan(`📬 Recent Emails (${emails.length} found)`));
+        console.log(pipe);
 
         emails.forEach((email: any, index: number) => {
-            console.log(`\n${chalk.bold.white(`${index + 1}.`)} ${chalk.bold.blue(email.subject || '(No Subject)')}`);
-            console.log(`   ${chalk.cyan('📧 From:')} ${chalk.white(email.from)}`);
-            console.log(`   ${chalk.green('📅 Date:')} ${chalk.gray(new Date(email.date).toLocaleString())}`);
-            console.log(`   ${chalk.yellow('🆔 ID:')}   ${chalk.dim(email.id)}`);
+            console.log(branch, chalk.bold.blue(email.subject || '(No Subject)'));
+            console.log(pipe, '  ', chalk.cyan('From:'), chalk.white(email.from));
+            console.log(pipe, '  ', chalk.green('Date:'), chalk.gray(new Date(email.date).toLocaleString()));
+            console.log(pipe, '  ', chalk.yellow('ID:'), chalk.dim(email.id));
             
             if (index < emails.length - 1) {
-                console.log(chalk.gray('─'.repeat(50)));
+                console.log(pipe);
             }
         });
         
-        console.log(chalk.gray('═'.repeat(60)));
-        console.log(chalk.dim(`💡 Use 'email-get <id>' to read full email content\n`));
+        console.log(end);
+        console.log(chalk.dim(`💡 Tip: Use 'email-cli get <id>' to read full email content`));
+        console.log('');
 
         await emailService.close();
     } catch (error: any) {
@@ -95,42 +119,52 @@ export async function getEmail(emailId: string): Promise<void> {
         const emailService = await initializeEmailService();
         spinner.succeed('Email service initialized');
 
-        console.log(chalk.dim(`📧 Using account: ${process.env.EMAIL_USER || 'Not configured'}`));
+        console.log(pipe);
+        console.log(pipe, '  ', chalk.dim(`Using: ${process.env.EMAIL_USER || 'Not configured'}`));
+        console.log(pipe);
 
         spinner.start(`Getting email ${emailId}...`);
         const email = await emailService.getEmailById(emailId);
         spinner.succeed('Email retrieved');
 
         if (!email) {
-            console.log(chalk.red('❌ Email not found with ID:'), chalk.yellow(emailId));
+            console.log(pipe);
+            console.log(cross, chalk.red('Email not found with ID:'), chalk.yellow(emailId));
+            console.log('');
             await emailService.close();
             return;
         }
 
-        console.log(chalk.green('✅ Email retrieved successfully!'));
-        console.log('');
-        console.log(chalk.blue('📧 Email Details:'));
-        console.log(chalk.cyan(`   ID: ${email.id}`));
-        console.log(chalk.cyan(`   From: ${email.from}`));
-        console.log(chalk.cyan(`   To: ${email.to.join(', ')}`));
+        console.log(pipe);
+        console.log(bullet, chalk.green('Email retrieved successfully!'));
+        console.log(pipe);
+        console.log(branch, chalk.cyan(`ID: ${email.id}`));
+        console.log(branch, chalk.cyan(`From: ${email.from}`));
+        console.log(branch, chalk.cyan(`To: ${email.to.join(', ')}`));
         if (email.cc && email.cc.length > 0) {
-            console.log(chalk.cyan(`   CC: ${email.cc.join(', ')}`));
+            console.log(branch, chalk.cyan(`CC: ${email.cc.join(', ')}`));
         }
-        console.log(chalk.cyan(`   Subject: ${email.subject}`));
-        console.log(chalk.cyan(`   Date: ${email.date.toLocaleString()}`));
-        console.log('');
-        console.log(chalk.blue('📄 Email Body:'));
-        console.log(chalk.gray('   ' + '─'.repeat(50)));
+        console.log(branch, chalk.cyan(`Subject: ${email.subject}`));
+        console.log(branch, chalk.cyan(`Date: ${email.date.toLocaleString()}`));
+        console.log(pipe);
+        console.log(branch, chalk.blue('Body:'));
+        console.log(pipe);
 
         if (email.body && email.body.trim()) {
             const cleanBody = cleanEmailBody(email.body);
             const lines = cleanBody.split('\n');
-            lines.forEach((line: string) => console.log(`   ${line}`));
+            lines.forEach((line: string, idx: number) => {
+                if (idx < lines.length - 1) {
+                    console.log(pipe, '  ', line);
+                } else {
+                    console.log(end, '  ', line);
+                }
+            });
         } else {
-            console.log(chalk.gray('   (No content)'));
+            console.log(end, chalk.gray('(No content)'));
         }
         
-        console.log(chalk.gray('   ' + '─'.repeat(50)));
+        console.log('');
         await emailService.close();
     } catch (error: any) {
         spinner.fail('Failed to get email');
@@ -146,7 +180,9 @@ export async function deleteEmails(emailIds: string[], force: boolean = false): 
         const emailService = await initializeEmailService();
         spinner.succeed('Email service initialized');
 
-        console.log(chalk.blue(`📧 Processing ${emailIds.length} email${emailIds.length > 1 ? 's' : ''} for deletion:`));
+        console.log(pipe);
+        console.log(pipe, '  ', chalk.blue(`Processing ${emailIds.length} email${emailIds.length > 1 ? 's' : ''} for deletion`));
+        console.log(pipe);
 
         if (!force) {
             const rl = readline.createInterface({
@@ -155,12 +191,14 @@ export async function deleteEmails(emailIds: string[], force: boolean = false): 
             });
 
             const answer = await new Promise<string>((resolve) => {
-                rl.question(chalk.yellow(`⚠️  Delete ${emailIds.length} email(s)? This cannot be undone! (y/N): `), resolve);
+                rl.question(`${pipe}   ${chalk.yellow(`Delete ${emailIds.length} email(s)? This cannot be undone! (y/N):`)} `, resolve);
             });
             rl.close();
 
             if (answer.toLowerCase() !== 'y' && answer.toLowerCase() !== 'yes') {
-                console.log(chalk.blue('ℹ️  Deletion cancelled'));
+                console.log(pipe);
+                console.log(info, chalk.blue('Deletion cancelled'));
+                console.log('');
                 await emailService.close();
                 return;
             }
@@ -172,7 +210,9 @@ export async function deleteEmails(emailIds: string[], force: boolean = false): 
         }
         spinner.succeed(`Deleted ${emailIds.length} email(s)`);
 
-        console.log(chalk.green(`✅ Successfully deleted ${emailIds.length} email(s)`));
+        console.log(pipe);
+        console.log(check, chalk.green(`Successfully deleted ${emailIds.length} email(s)`));
+        console.log('');
         await emailService.close();
     } catch (error: any) {
         spinner.fail('Failed to delete emails');
@@ -193,11 +233,16 @@ export async function markEmailRead(emailId: string, read: boolean = true): Prom
         spinner.succeed();
 
         if (success) {
-            console.log(chalk.green(`✅ Email ${emailId} marked as ${read ? 'read' : 'unread'}!`));
-            console.log(chalk.blue(`📧 Email ID: ${emailId}`));
-            console.log(chalk.cyan(`   Status: ${read ? '✅ Read' : '📩 Unread'}`));
+            console.log(pipe);
+            console.log(check, chalk.green(`Email ${emailId} marked as ${read ? 'read' : 'unread'}!`));
+            console.log(pipe);
+            console.log(branch, chalk.blue(`Email ID: ${emailId}`));
+            console.log(end, chalk.cyan(`Status: ${read ? 'Read' : 'Unread'}`));
+            console.log('');
         } else {
-            console.log(chalk.red('❌ Failed to update email status. Email may not exist.'));
+            console.log(pipe);
+            console.log(cross, chalk.red('Failed to update email status. Email may not exist.'));
+            console.log('');
         }
 
         await emailService.close();

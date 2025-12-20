@@ -409,19 +409,145 @@ program
         console.log(chalk.blue('Run: npm install -g @0xshariq/email-mcp-server@latest'));
     });
 
-// Custom help
-program.on('--help', () => {
-    console.log('');
-    console.log(chalk.bold.cyan('Examples:'));
-    console.log(chalk.gray('  $ email-cli send user@example.com "Hello" "Test message"'));
-    console.log(chalk.gray('  $ email-cli read 5'));
-    console.log(chalk.gray('  $ email-cli search --from boss@company.com'));
-    console.log(chalk.gray('  $ email-cli contact-add "John Doe" john@example.com'));
-    console.log('');
-    console.log(chalk.dim('For more information on a specific command, use:'));
-    console.log(chalk.dim('  $ email-cli <command> --help'));
-    console.log('');
+// Helper function to wrap text at word boundaries
+function wrapText(text: string, maxWidth: number): string[] {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+    
+    for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        if (testLine.length <= maxWidth) {
+            currentLine = testLine;
+        } else {
+            if (currentLine) {
+                lines.push(currentLine);
+            }
+            currentLine = word;
+        }
+    }
+    
+    if (currentLine) {
+        lines.push(currentLine);
+    }
+    
+    return lines;
+}
+
+// Custom help formatting
+program.configureHelp({
+    formatHelp: (cmd, helper) => {
+        // Get terminal width (default to 100 for better formatting)
+        const terminalWidth = process.stdout.columns || 100;
+        
+        // Calculate proper column width for better alignment
+        const commands = helper.visibleCommands(cmd);
+        const options = helper.visibleOptions(cmd);
+        
+        // Find max length of command/option names
+        let maxNameLength = 0;
+        commands.forEach((subCmd: any) => {
+            const name = helper.subcommandTerm(subCmd);
+            maxNameLength = Math.max(maxNameLength, name.length);
+        });
+        options.forEach((option: any) => {
+            const flags = helper.optionTerm(option);
+            maxNameLength = Math.max(maxNameLength, flags.length);
+        });
+        
+        // Set padding: cap at 45% of terminal width or 50 chars max
+        const maxPadding = Math.min(Math.floor(terminalWidth * 0.45), 50);
+        const padding = Math.min(maxNameLength + 2, maxPadding);
+        const descriptionWidth = terminalWidth - padding - 4; // 4 = 2 spaces indent + 2 spaces gap
+        
+        let output = '';
+        
+        // Header
+        output += '\n';
+        output += chalk.bold.cyan('📧 Email MCP Server CLI') + chalk.gray(' - A powerful command-line interface for email operations\n');
+        output += '\n';
+        
+        // Usage
+        output += chalk.bold.white('Usage:') + ' ' + chalk.cyan(cmd.name()) + ' ' + chalk.gray('[options] [command]') + '\n';
+        output += '\n';
+        
+        // Options
+        if (options.length > 0) {
+            output += chalk.bold.white('Options:') + '\n';
+            options.forEach((option: any) => {
+                const flags = helper.optionTerm(option);
+                const description = helper.optionDescription(option);
+                const spacing = ' '.repeat(Math.max(2, padding - flags.length));
+                
+                // Wrap description if needed
+                const descLines = wrapText(description, descriptionWidth);
+                output += `  ${chalk.cyan(flags)}${spacing}${chalk.gray(descLines[0])}\n`;
+                
+                // Add continuation lines with proper indentation
+                for (let i = 1; i < descLines.length; i++) {
+                    const indent = ' '.repeat(padding + 2);
+                    output += `${indent}${chalk.gray(descLines[i])}\n`;
+                }
+            });
+            output += '\n';
+        }
+        
+        // Commands
+        if (commands.length > 0) {
+            output += chalk.bold.white('Commands:') + '\n';
+            commands.forEach((subCmd: any) => {
+                const name = helper.subcommandTerm(subCmd);
+                const description = helper.subcommandDescription(subCmd);
+                const spacing = ' '.repeat(Math.max(2, padding - name.length));
+                
+                // Wrap description if needed
+                const descLines = wrapText(description, descriptionWidth);
+                output += `  ${chalk.cyan(name)}${spacing}${chalk.gray(descLines[0])}\n`;
+                
+                // Add continuation lines with proper indentation
+                for (let i = 1; i < descLines.length; i++) {
+                    const indent = ' '.repeat(padding + 2);
+                    output += `${indent}${chalk.gray(descLines[i])}\n`;
+                }
+            });
+            output += '\n';
+        }
+        
+        // Examples
+        output += chalk.bold.cyan('Examples:') + '\n';
+        output += `  ${chalk.gray('$ email-cli send user@example.com "Hello" "Test message"')}\n`;
+        output += `  ${chalk.gray('$ email-cli read 5')}\n`;
+        output += `  ${chalk.gray('$ email-cli search --from boss@company.com')}\n`;
+        output += `  ${chalk.gray('$ email-cli contact-add "John Doe" john@example.com')}\n`;
+        output += '\n';
+        
+        output += chalk.dim('For more information on a specific command, use:') + '\n';
+        output += `  ${chalk.dim('$ email-cli <command> --help')}\n`;
+        output += '\n';
+        
+        return output;
+    }
 });
+
+// Override help command with custom styled output
+program.addHelpCommand(false);
+
+program
+    .command('help [command]')
+    .description('display help for command')
+    .action((command) => {
+        if (command) {
+            const cmd = program.commands.find(c => c.name() === command || c.aliases().includes(command));
+            if (cmd) {
+                cmd.help();
+            } else {
+                console.log(chalk.red(`Unknown command: ${command}`));
+                program.help();
+            }
+        } else {
+            program.help();
+        }
+    });
 
 // Parse arguments
 program.parse(process.argv);

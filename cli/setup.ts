@@ -23,6 +23,7 @@ const cross = chalk.red(figures.cross);
 const pointer = chalk.cyan(figures.pointer);
 const info = chalk.cyan(figures.info);
 const warning = chalk.yellow(figures.warning);
+const bullet = chalk.cyan(figures.bullet);
 
 interface EmailConfig {
     EMAIL_USER: string;
@@ -314,46 +315,50 @@ export async function setup(): Promise<void> {
     console.log(chalk.bold.cyan('\n╔════════════════════════════════════════════╗'));
     console.log(chalk.bold.cyan('║     📧 Email CLI Configuration Setup      ║'));
     console.log(chalk.bold.cyan('╚════════════════════════════════════════════╝\n'));
-    console.log(chalk.gray('This wizard will help you configure email credentials and server settings.\n'));
     
     const rl = createInterface();
     const config: EmailConfig = {} as EmailConfig;
     
     try {
-        // Step 1: Email Address
+        // Step 1: Email Credentials
+        console.log(pipe);
         console.log(chalk.bold.white('Step 1/3: Email Credentials'));
-        console.log(chalk.gray('─'.repeat(50)));
         console.log(pipe);
         
         config.EMAIL_USER = await question(
             rl,
-            `${branch} ${chalk.cyan('Email address:')} `
+            `${pipe}   ${chalk.cyan('Email address:')} `
         );
         
         if (!config.EMAIL_USER || !config.EMAIL_USER.includes('@')) {
-            console.log(`${pipe}\n${end} ${cross} ${chalk.red('Invalid email address!')}\n`);
+            console.log(pipe);
+            console.log(end, cross, chalk.red('Invalid email address!'));
+            console.log('');
             rl.close();
             return;
         }
         
-        console.log(`${pipe}\n${branch} ${chalk.cyan('Password/App Password:')}`);
+        console.log(pipe);
         // Ask for password
         config.EMAIL_PASS = await questionPassword(
             rl,
-            `${pipe}   `
+            `${pipe}   ${chalk.cyan('Password/App Password:')} `
         );
         
         if (!config.EMAIL_PASS) {
-            console.log(`${pipe}\n${end} ${cross} ${chalk.red('Password is required!')}\n`);
+            console.log(pipe);
+            console.log(end, cross, chalk.red('Password is required!'));
+            console.log('');
             rl.close();
             return;
         }
         
-        console.log(`${pipe}\n${end} ${check} ${chalk.green('Credentials saved')}\n`);
+        console.log(pipe);
+        console.log(chalk.blue(bullet), chalk.green('Credentials saved!'));
+        console.log(pipe);
         
         // Step 2: Server Configuration
         console.log(chalk.bold.white('Step 2/3: Server Configuration'));
-        console.log(chalk.gray('─'.repeat(50)));
         console.log(pipe);
         
         // Auto-detect provider
@@ -361,15 +366,14 @@ export async function setup(): Promise<void> {
         
         if (detected) {
             const provider = config.EMAIL_USER.split('@')[1];
-            console.log(`${branch} ${check} ${chalk.green(`Auto-detected settings for ${chalk.bold(provider)}`)}`);
-            console.log(`${pipe}`);
-            console.log(`${branch} ${chalk.gray('SMTP:')} ${chalk.white(`${detected.smtp}:${detected.smtpPort}`)}`);
-            console.log(`${end} ${chalk.gray('IMAP:')} ${chalk.white(`${detected.imap}:${detected.imapPort}`)}`);
-            console.log('');
+            console.log(pipe, '  ', chalk.gray(`Detected: ${provider}`));
+            console.log(pipe, '  ', chalk.gray(`SMTP: ${detected.smtp}:${detected.smtpPort}`));
+            console.log(pipe, '  ', chalk.gray(`IMAP: ${detected.imap}:${detected.imapPort}`));
+            console.log(pipe);
             
             const useDetected = await question(
                 rl,
-                `${pointer} ${chalk.cyan('Use these settings? [Y/n]:')} `
+                `${pipe}   ${chalk.cyan('Use detected settings? [Y/n]:')} `
             );
             
             if (!useDetected || useDetected.toLowerCase() !== 'n') {
@@ -377,19 +381,20 @@ export async function setup(): Promise<void> {
                 config.SMTP_PORT = detected.smtpPort;
                 config.IMAP_HOST = detected.imap;
                 config.IMAP_PORT = detected.imapPort;
-                console.log(`\n${check} ${chalk.green('Using auto-detected settings')}\n`);
+                console.log(pipe);
+                console.log(chalk.blue(bullet), chalk.green('Using auto-detected settings'));
+                console.log(pipe);
             } else {
                 // Manual configuration
-                console.log(`\n${info} ${chalk.yellow('Manual Configuration')}\n`);
+                console.log(pipe);
+                console.log(chalk.blue(bullet), chalk.yellow('Manual Configuration'));
+                console.log(pipe);
                 await manualConfiguration(rl, config);
-                console.log(`\n${check} ${chalk.green('Server settings configured')}\n`);
             }
         } else {
-            console.log(`${branch} ${warning} ${chalk.yellow(`Could not auto-detect settings for ${config.EMAIL_USER.split('@')[1]}`)}`);
-            console.log(`${end} ${chalk.gray('Please enter your email provider\'s server details')}`);
-            console.log('');
+            console.log(pipe, '  ', chalk.yellow(`Could not auto-detect settings for ${config.EMAIL_USER.split('@')[1]}`));
+            console.log(pipe);
             await manualConfiguration(rl, config);
-            console.log(`\n${check} ${chalk.green('Server settings configured')}\n`);
         }
         
         // Set additional config
