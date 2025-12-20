@@ -391,18 +391,14 @@ program
 
 program
     .command('setup')
-    .description('Configure email credentials and settings')
-    .option('--force', 'Force reconfiguration')
-    .option('--use-keychain', 'Store password in OS keychain')
-    .option('--test-send', 'Send a test email after setup')
-    .option('--mask', 'Mask password input')
-    .option('--ci, --non-interactive', 'Run in non-interactive mode')
-    .option('--profile <name>', 'Use named profile')
-    .option('--email-user <user>', 'Email user for non-interactive setup')
-    .option('--email-pass <pass>', 'Email password for non-interactive setup')
-    .action(async (_options) => {
-        console.log(chalk.yellow('⚠️  Setup command needs to be implemented with inquirer prompts'));
-        console.log(chalk.blue('For now, please configure your .env file manually'));
+    .description('Interactive setup for email configuration (SMTP/IMAP)')
+    .action(async () => {
+        try {
+            await setup();
+        } catch (error: any) {
+            console.error(chalk.red('Setup error:'), error.message);
+            process.exit(1);
+        }
     });
 
 program

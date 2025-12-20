@@ -6,11 +6,23 @@
  * Stores configuration permanently across platforms (Linux/macOS/Windows)
  */
 
-import * as readline from 'readline';
+import * as readline from 'node:readline';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import chalk from 'chalk';
+import figures from 'figures';
+
+// UI Elements
+const pipe = chalk.gray('│');
+const end = chalk.gray('└─');
+const branch = chalk.gray('├─');
+const arrow = chalk.cyan('→');
+const check = chalk.green(figures.tick);
+const cross = chalk.red(figures.cross);
+const pointer = chalk.cyan(figures.pointer);
+const info = chalk.cyan(figures.info);
+const warning = chalk.yellow(figures.warning);
 
 interface EmailConfig {
     EMAIL_USER: string;
@@ -48,7 +60,7 @@ function question(rl: readline.Interface, prompt: string): Promise<string> {
 /**
  * Ask for password with masked input
  */
-function questionPassword(rl: readline.Interface, prompt: string): Promise<string> {
+function questionPassword(_rl: readline.Interface, prompt: string): Promise<string> {
     return new Promise((resolve) => {
         const stdin = process.stdin;
         const originalMode = stdin.isTTY ? (stdin as any).isRaw : false;
@@ -299,46 +311,65 @@ function saveToEnvFile(config: EmailConfig): boolean {
  * Main setup function
  */
 export async function setup(): Promise<void> {
-    console.log(chalk.bold.cyan('\n📧 Email CLI Setup\n'));
-    console.log(chalk.gray('Configure your email credentials and SMTP/IMAP settings\n'));
+    console.log(chalk.bold.cyan('\n╔════════════════════════════════════════════╗'));
+    console.log(chalk.bold.cyan('║     📧 Email CLI Configuration Setup      ║'));
+    console.log(chalk.bold.cyan('╚════════════════════════════════════════════╝\n'));
+    console.log(chalk.gray('This wizard will help you configure email credentials and server settings.\n'));
     
     const rl = createInterface();
     const config: EmailConfig = {} as EmailConfig;
     
     try {
-        // Ask for email
+        // Step 1: Email Address
+        console.log(chalk.bold.white('Step 1/3: Email Credentials'));
+        console.log(chalk.gray('─'.repeat(50)));
+        console.log(pipe);
+        
         config.EMAIL_USER = await question(
             rl,
-            chalk.cyan('Email address: ')
+            `${branch} ${chalk.cyan('Email address:')} `
         );
         
-        if (!config.EMAIL_USER) {
-            console.log(chalk.red('Email address is required!'));
+        if (!config.EMAIL_USER || !config.EMAIL_USER.includes('@')) {
+            console.log(`${pipe}\n${end} ${cross} ${chalk.red('Invalid email address!')}\n`);
             rl.close();
             return;
         }
         
+        console.log(`${pipe}\n${branch} ${chalk.cyan('Password/App Password:')}`);
         // Ask for password
         config.EMAIL_PASS = await questionPassword(
             rl,
-            chalk.cyan('Password/App Password: ')
+            `${pipe}   `
         );
         
         if (!config.EMAIL_PASS) {
-            console.log(chalk.red('\nPassword is required!'));
+            console.log(`${pipe}\n${end} ${cross} ${chalk.red('Password is required!')}\n`);
             rl.close();
             return;
         }
+        
+        console.log(`${pipe}\n${end} ${check} ${chalk.green('Credentials saved')}\n`);
+        
+        // Step 2: Server Configuration
+        console.log(chalk.bold.white('Step 2/3: Server Configuration'));
+        console.log(chalk.gray('─'.repeat(50)));
+        console.log(pipe);
         
         // Auto-detect provider
         const detected = detectProvider(config.EMAIL_USER);
         
         if (detected) {
-            console.log(chalk.green(`\n✓ Detected provider settings for ${config.EMAIL_USER.split('@')[1]}`));
+            const provider = config.EMAIL_USER.split('@')[1];
+            console.log(`${branch} ${check} ${chalk.green(`Auto-detected settings for ${chalk.bold(provider)}`)}`);
+            console.log(`${pipe}`);
+            console.log(`${branch} ${chalk.gray('SMTP:')} ${chalk.white(`${detected.smtp}:${detected.smtpPort}`)}`);
+            console.log(`${end} ${chalk.gray('IMAP:')} ${chalk.white(`${detected.imap}:${detected.imapPort}`)}`);
+            console.log('');
             
             const useDetected = await question(
                 rl,
-                chalk.cyan(`Use detected settings? (Y/n): `)
+                `${pointer} ${chalk.cyan('Use these settings? [Y/n]:')} `
             );
             
             if (!useDetected || useDetected.toLowerCase() !== 'n') {
@@ -346,16 +377,19 @@ export async function setup(): Promise<void> {
                 config.SMTP_PORT = detected.smtpPort;
                 config.IMAP_HOST = detected.imap;
                 config.IMAP_PORT = detected.imapPort;
-                
-                console.log(chalk.gray(`SMTP: ${config.SMTP_HOST}:${config.SMTP_PORT}`));
-                console.log(chalk.gray(`IMAP: ${config.IMAP_HOST}:${config.IMAP_PORT}\n`));
+                console.log(`\n${check} ${chalk.green('Using auto-detected settings')}\n`);
             } else {
                 // Manual configuration
+                console.log(`\n${info} ${chalk.yellow('Manual Configuration')}\n`);
                 await manualConfiguration(rl, config);
+                console.log(`\n${check} ${chalk.green('Server settings configured')}\n`);
             }
         } else {
-            console.log(chalk.yellow('\n⚠ Provider not auto-detected, please enter manually:\n'));
+            console.log(`${branch} ${warning} ${chalk.yellow(`Could not auto-detect settings for ${config.EMAIL_USER.split('@')[1]}`)}`);
+            console.log(`${end} ${chalk.gray('Please enter your email provider\'s server details')}`);
+            console.log('');
             await manualConfiguration(rl, config);
+            console.log(`\n${check} ${chalk.green('Server settings configured')}\n`);
         }
         
         // Set additional config
@@ -363,56 +397,114 @@ export async function setup(): Promise<void> {
         config.IMAP_TLS = 'true';
         config.SMTP_SECURE = 'false';
         
-        // Ask where to save
-        console.log(chalk.bold.cyan('\n💾 Save Configuration\n'));
-        console.log(chalk.gray('Where do you want to save the configuration?\n'));
-        console.log(chalk.white('1. Local (.env file in current directory) - Recommended for development'));
-        console.log(chalk.white('2. Global (System environment variables) - Recommended for production'));
-        console.log(chalk.white('3. Both\n'));
+        // Step 3: Save Configuration
+        console.log(chalk.bold.white('Step 3/3: Save Configuration'));
+        console.log(chalk.gray('─'.repeat(50)));
+        console.log(pipe);
+        console.log(`${branch} ${chalk.gray('Choose where to save your configuration:')}`);
+        console.log(pipe);
+        
+        const platform = os.platform();
+        const shellConfig = platform === 'win32' ? 'System Environment Variables' : getShellConfigPath();
+        
+        console.log(`${branch} ${chalk.white('[1] 📁 Local (.env file)')}`);
+        console.log(`${pipe}   ${arrow} ${chalk.gray('Current directory only')}`);
+        console.log(`${pipe}   ${arrow} ${chalk.gray('Best for: Development, testing, project-specific config')}`);
+        console.log(pipe);
+        
+        console.log(`${branch} ${chalk.white('[2] 🌍 Global (System environment)')}`);
+        console.log(`${pipe}   ${arrow} ${chalk.gray(platform === 'win32' ? 'Windows Registry' : shellConfig)}`);
+        console.log(`${pipe}   ${arrow} ${chalk.gray('Best for: Production, permanent installation')}`);
+        console.log(pipe);
+        
+        console.log(`${end} ${chalk.white('[3] 📁 + 🌍 Both locations')}`);
+        console.log(`    ${arrow} ${chalk.gray('Maximum compatibility')}`);
+        console.log('');
         
         const saveChoice = await question(
             rl,
-            chalk.cyan('Choose option (1/2/3): ')
+            `${pointer} ${chalk.cyan('Select option [1-3]:')} `
         );
         
+        console.log(''); // Empty line
         let success = false;
         
         if (saveChoice === '1' || saveChoice === '3') {
+            process.stdout.write(`${pipe} ${chalk.gray('Saving to .env file...')} `);
             if (saveToEnvFile(config)) {
-                console.log(chalk.green('✓ Configuration saved to .env file'));
+                console.log(check);
                 success = true;
+            } else {
+                console.log(cross);
             }
         }
         
         if (saveChoice === '2' || saveChoice === '3') {
-            const platform = os.platform();
-            
             if (platform === 'win32') {
+                process.stdout.write(`${pipe} ${chalk.gray('Saving to Windows environment...')} `);
                 if (saveToWindows(config)) {
-                    console.log(chalk.green('✓ Configuration saved to Windows environment variables'));
-                    console.log(chalk.yellow('⚠ Please restart your terminal for changes to take effect'));
+                    console.log(check);
                     success = true;
+                } else {
+                    console.log(cross);
                 }
             } else {
                 const configPath = getShellConfigPath();
+                process.stdout.write(`${pipe} ${chalk.gray(`Saving to ${configPath}...`)} `);
                 if (saveToShellProfile(config)) {
-                    console.log(chalk.green(`✓ Configuration saved to ${configPath}`));
-                    console.log(chalk.yellow(`⚠ Run: source ${configPath} or restart your terminal`));
+                    console.log(check);
                     success = true;
+                } else {
+                    console.log(cross);
                 }
             }
         }
         
+        if (!['1', '2', '3'].includes(saveChoice)) {
+            console.log(`${end} ${cross} ${chalk.red('Invalid option selected')}\n`);
+            rl.close();
+            return;
+        }
+        
         if (success) {
-            console.log(chalk.bold.green('\n✓ Setup completed successfully!\n'));
-            console.log(chalk.gray('Test your configuration with:'));
-            console.log(chalk.white('  email-cli send <recipient> "Test" "Hello from email-cli"\n'));
+            console.log(chalk.bold.green('\n╔════════════════════════════════════════════╗'));
+            console.log(chalk.bold.green('║          ✓ Setup Completed!                ║'));
+            console.log(chalk.bold.green('╚════════════════════════════════════════════╝\n'));
+            
+            if (saveChoice === '2' || saveChoice === '3') {
+                console.log(`${warning} ${chalk.yellow('Action Required:')}`);
+                console.log(pipe);
+                if (platform === 'win32') {
+                    console.log(`${end} ${arrow} ${chalk.white('Restart your terminal/PowerShell for changes to take effect')}\n`);
+                } else {
+                    const configPath = getShellConfigPath();
+                    console.log(`${branch} ${arrow} ${chalk.white(`Run: ${chalk.cyan(`source ${configPath}`)}`)}`);
+                    console.log(`${end} ${arrow} ${chalk.white('Or restart your terminal')}\n`);
+                }
+            }
+            
+            console.log(chalk.bold.white('📋 Next Steps:\n'));
+            console.log(pipe);
+            console.log(`${branch} ${chalk.gray('Test your configuration:')}`);
+            console.log(`${pipe}   ${chalk.cyan('$ email-cli send recipient@example.com "Test" "Hello!"')}`);
+            console.log(pipe);
+            console.log(`${branch} ${chalk.gray('View all commands:')}`);
+            console.log(`${pipe}   ${chalk.cyan('$ email-cli --help')}`);
+            console.log(pipe);
+            console.log(`${branch} ${chalk.gray('Read recent emails:')}`);
+            console.log(`${pipe}   ${chalk.cyan('$ email-cli read 10')}`);
+            console.log(pipe);
+            console.log(`${end} ${chalk.gray('For more information:')}`);
+            console.log(`    ${chalk.cyan('$ email-cli <command> --help')}\n`);
         } else {
-            console.log(chalk.red('\n✗ Setup failed. Please try again.\n'));
+            console.log(chalk.bold.red('\n╔════════════════════════════════════════════╗'));
+            console.log(chalk.bold.red('║          ✗ Setup Failed                    ║'));
+            console.log(chalk.bold.red('╚════════════════════════════════════════════╝\n'));
+            console.log(chalk.yellow('Please check the errors above and try again.\n'));
         }
         
     } catch (error) {
-        console.error(chalk.red('\nSetup error:'), error);
+        console.error(chalk.red('\n✗ Setup error:'), error);
     } finally {
         rl.close();
     }
@@ -422,25 +514,42 @@ export async function setup(): Promise<void> {
  * Manual SMTP/IMAP configuration
  */
 async function manualConfiguration(rl: readline.Interface, config: EmailConfig): Promise<void> {
+    console.log(`${pipe} ${info} ${chalk.gray('Common providers:')}`);
+    console.log(`${pipe}   ${branch} Gmail: ${chalk.white('smtp.gmail.com / imap.gmail.com')}`);
+    console.log(`${pipe}   ${branch} Outlook: ${chalk.white('smtp-mail.outlook.com / outlook.office365.com')}`);
+    console.log(`${pipe}   ${end} Yahoo: ${chalk.white('smtp.mail.yahoo.com / imap.mail.yahoo.com')}`);
+    console.log(pipe);
+    
     config.SMTP_HOST = await question(
         rl,
-        chalk.cyan('SMTP Host (e.g., smtp.gmail.com): ')
+        `${branch} ${chalk.cyan('SMTP Host:')} `
     );
     
-    config.SMTP_PORT = await question(
+    if (!config.SMTP_HOST) {
+        throw new Error('SMTP Host is required');
+    }
+    
+    let smtpPort = await question(
         rl,
-        chalk.cyan('SMTP Port (default: 587): ')
-    ) || '587';
+        `${pipe}   ${chalk.cyan('SMTP Port [587]:')} `
+    );
+    config.SMTP_PORT = smtpPort || '587';
+    console.log(pipe);
     
     config.IMAP_HOST = await question(
         rl,
-        chalk.cyan('IMAP Host (e.g., imap.gmail.com): ')
+        `${branch} ${chalk.cyan('IMAP Host:')} `
     );
     
-    config.IMAP_PORT = await question(
+    if (!config.IMAP_HOST) {
+        throw new Error('IMAP Host is required');
+    }
+    
+    let imapPort = await question(
         rl,
-        chalk.cyan('IMAP Port (default: 993): ')
-    ) || '993';
+        `${end}   ${chalk.cyan('IMAP Port [993]:')} `
+    );
+    config.IMAP_PORT = imapPort || '993';
 }
 
 // Run setup if called directly
