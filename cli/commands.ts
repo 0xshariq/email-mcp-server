@@ -27,6 +27,17 @@ export async function sendEmail(to: string, subject: string, body: string, html?
     const spinner = createSpinner('Initializing email service...');
     
     try {
+        // Validate input
+        if (!to || to.trim() === '') {
+            throw new Error('Recipient email address is required');
+        }
+        if (!subject || subject.trim() === '') {
+            throw new Error('Email subject is required');
+        }
+        if (!body || body.trim() === '') {
+            throw new Error('Email body is required');
+        }
+
         spinner.start();
         const emailService = await initializeEmailService();
         spinner.succeed('Email service initialized');
@@ -36,6 +47,13 @@ export async function sendEmail(to: string, subject: string, body: string, html?
         console.log(pipe);
         
         const recipients = to.split(',').map(email => email.trim()).filter(email => email.length > 0);
+        
+        // Validate email addresses
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const invalidEmails = recipients.filter(email => !emailRegex.test(email));
+        if (invalidEmails.length > 0) {
+            throw new Error(`Invalid email address(es): ${invalidEmails.join(', ')}`);
+        }
         
         if (recipients.length > 3) {
             throw new Error('email-send supports maximum 3 recipients. Use email-bulk for more.');
@@ -69,6 +87,15 @@ export async function readEmails(count: number = 10): Promise<void> {
     const spinner = createSpinner('Initializing email service...');
     
     try {
+        // Validate count
+        if (count <= 0) {
+            throw new Error('Count must be a positive number');
+        }
+        if (count > 100) {
+            console.log(chalk.yellow('⚠️  Large count detected. Limiting to 100 emails for performance.'));
+            count = 100;
+        }
+
         spinner.start();
         const emailService = await initializeEmailService();
         spinner.succeed('Email service initialized');
@@ -115,6 +142,11 @@ export async function getEmail(emailId: string): Promise<void> {
     const spinner = createSpinner('Initializing email service...');
     
     try {
+        // Validate email ID
+        if (!emailId || emailId.trim() === '') {
+            throw new Error('Email ID is required');
+        }
+
         spinner.start();
         const emailService = await initializeEmailService();
         spinner.succeed('Email service initialized');
@@ -176,12 +208,23 @@ export async function deleteEmails(emailIds: string[], force: boolean = false): 
     const spinner = createSpinner('Initializing email service...');
     
     try {
+        // Validate input
+        if (!emailIds || emailIds.length === 0) {
+            throw new Error('At least one email ID is required');
+        }
+        
+        // Remove duplicates and empty strings
+        const uniqueIds = [...new Set(emailIds.filter(id => id && id.trim() !== ''))];
+        if (uniqueIds.length === 0) {
+            throw new Error('No valid email IDs provided');
+        }
+
         spinner.start();
         const emailService = await initializeEmailService();
         spinner.succeed('Email service initialized');
 
         console.log(pipe);
-        console.log(pipe, '  ', chalk.blue(`Processing ${emailIds.length} email${emailIds.length > 1 ? 's' : ''} for deletion`));
+        console.log(pipe, '  ', chalk.blue(`Processing ${uniqueIds.length} email${uniqueIds.length > 1 ? 's' : ''} for deletion`));
         console.log(pipe);
 
         if (!force) {
@@ -191,7 +234,7 @@ export async function deleteEmails(emailIds: string[], force: boolean = false): 
             });
 
             const answer = await new Promise<string>((resolve) => {
-                rl.question(`${pipe}   ${chalk.yellow(`Delete ${emailIds.length} email(s)? This cannot be undone! (y/N):`)} `, resolve);
+                rl.question(`${pipe}   ${chalk.yellow(`Delete ${uniqueIds.length} email(s)? This cannot be undone! (y/N):`)} `, resolve);
             });
             rl.close();
 
@@ -204,14 +247,32 @@ export async function deleteEmails(emailIds: string[], force: boolean = false): 
             }
         }
 
-        spinner.start(`Deleting ${emailIds.length} email(s)...`);
-        for (const emailId of emailIds) {
-            await emailService.deleteEmail(emailId);
+        spinner.start(`Deleting ${uniqueIds.length} email(s)...`);
+        let deleted = 0;
+        const failed: string[] = [];
+        
+        for (const emailId of uniqueIds) {
+            try {
+                await emailService.deleteEmail(emailId);
+                deleted++;
+            } catch (error) {
+                failed.push(emailId);
+            }
         }
-        spinner.succeed(`Deleted ${emailIds.length} email(s)`);
+        
+        if (failed.length === 0) {
+            spinner.succeed(`Deleted ${deleted} email(s)`);
+        } else {
+            spinner.warn(`Deleted ${deleted}/${uniqueIds.length} email(s)`);
+        }
 
         console.log(pipe);
-        console.log(check, chalk.green(`Successfully deleted ${emailIds.length} email(s)`));
+        if (deleted > 0) {
+            console.log(check, chalk.green(`Successfully deleted ${deleted} email(s)`));
+        }
+        if (failed.length > 0) {
+            console.log(cross, chalk.red(`Failed to delete ${failed.length} email(s): ${failed.join(', ')}`));
+        }
         console.log('');
         await emailService.close();
     } catch (error: any) {
@@ -224,6 +285,11 @@ export async function markEmailRead(emailId: string, read: boolean = true): Prom
     const spinner = createSpinner('Initializing email service...');
     
     try {
+        // Validate email ID
+        if (!emailId || emailId.trim() === '') {
+            throw new Error('Email ID is required');
+        }
+
         spinner.start();
         const emailService = await initializeEmailService();
         spinner.succeed('Email service initialized');
@@ -362,7 +428,28 @@ export async function attachEmail(to: string, subject: string, body: string, fil
     const spinner = createSpinner('Initializing email service...');
     
     try {
+        // Validate input
+        if (!to || to.trim() === '') {
+            throw new Error('Recipient email address is required');
+        }
+        if (!subject || subject.trim() === '') {
+            throw new Error('Email subject is required');
+        }
+        if (!body || body.trim() === '') {
+            throw new Error('Email body is required');
+        }
+        if (!filePath || filePath.trim() === '') {
+            throw new Error('File path is required');
+        }
+
         const resolvedPath = validateAndResolveFilePath(filePath);
+        
+        // Check file size (warn if > 25MB, which is Gmail's limit)
+        const stats = fs.statSync(resolvedPath);
+        const fileSizeMB = stats.size / (1024 * 1024);
+        if (fileSizeMB > 25) {
+            console.log(chalk.yellow(`⚠️  Warning: File size is ${fileSizeMB.toFixed(2)}MB. Gmail has a 25MB attachment limit.`));
+        }
         
         spinner.start();
         const emailService = await initializeEmailService();
@@ -393,6 +480,19 @@ export async function forwardEmail(emailId: string, to: string, message?: string
     const spinner = createSpinner('Initializing email service...');
     
     try {
+        // Validate input
+        if (!emailId || emailId.trim() === '') {
+            throw new Error('Email ID is required');
+        }
+        if (!to || to.trim() === '') {
+            throw new Error('Recipient email address is required');
+        }
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(to.trim())) {
+            throw new Error(`Invalid email address: ${to}`);
+        }
+
         spinner.start();
         const emailService = await initializeEmailService();
         spinner.succeed('Email service initialized');
@@ -415,6 +515,14 @@ export async function replyEmail(emailId: string, message: string): Promise<void
     const spinner = createSpinner('Initializing email service...');
     
     try {
+        // Validate input
+        if (!emailId || emailId.trim() === '') {
+            throw new Error('Email ID is required');
+        }
+        if (!message || message.trim() === '') {
+            throw new Error('Reply message is required');
+        }
+
         spinner.start();
         const emailService = await initializeEmailService();
         spinner.succeed('Email service initialized');
@@ -507,17 +615,59 @@ export async function bulkSend(recipientsFile: string, subject: string, body: st
     const spinner = createSpinner('Initializing email service...');
     
     try {
-        const recipients = fs.readFileSync(recipientsFile, 'utf8').split('\n').filter(line => line.trim());
+        // Validate input
+        if (!recipientsFile || recipientsFile.trim() === '') {
+            throw new Error('Recipients file path is required');
+        }
+        if (!subject || subject.trim() === '') {
+            throw new Error('Email subject is required');
+        }
+        if (!body || body.trim() === '') {
+            throw new Error('Email body is required');
+        }
+        
+        // Check if file exists
+        if (!fs.existsSync(recipientsFile)) {
+            throw new Error(`Recipients file not found: ${recipientsFile}`);
+        }
+        
+        const recipients = fs.readFileSync(recipientsFile, 'utf8')
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0 && !line.startsWith('#'));
+        
+        if (recipients.length === 0) {
+            throw new Error('No recipients found in file');
+        }
+        
+        // Validate email addresses
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const invalidEmails = recipients.filter(email => !emailRegex.test(email));
+        if (invalidEmails.length > 0) {
+            console.log(chalk.yellow(`⚠️  Warning: Found ${invalidEmails.length} invalid email(s). They will be skipped.`));
+            console.log(chalk.gray(`   Invalid: ${invalidEmails.slice(0, 5).join(', ')}${invalidEmails.length > 5 ? '...' : ''}`));
+        }
+        
+        const validRecipients = recipients.filter(email => emailRegex.test(email));
+        if (validRecipients.length === 0) {
+            throw new Error('No valid email addresses found in file');
+        }
         
         spinner.start();
         const emailService = await initializeEmailService();
         spinner.succeed('Email service initialized');
 
-        spinner.start(`Sending to ${recipients.length} recipients...`);
-        await emailService.bulkSend(recipients, subject, body);
-        spinner.succeed(`Sent to ${recipients.length} recipients`);
+        console.log(pipe);
+        console.log(pipe, '  ', chalk.blue(`Preparing to send to ${validRecipients.length} valid recipient(s)...`));
+        console.log(pipe);
 
-        console.log(chalk.green(`✅ Bulk send completed! Sent to ${recipients.length} recipients`));
+        spinner.start(`Sending to ${validRecipients.length} recipients...`);
+        await emailService.bulkSend(validRecipients, subject, body);
+        spinner.succeed(`Sent to ${validRecipients.length} recipients`);
+
+        console.log(pipe);
+        console.log(check, chalk.green(`Bulk send completed! Sent to ${validRecipients.length} recipients`));
+        console.log('');
         
         await emailService.close();
     } catch (error: any) {
@@ -532,6 +682,19 @@ export async function addContact(name: string, email: string, group?: string, ph
     const spinner = createSpinner('Initializing contact service...');
     
     try {
+        // Validate input
+        if (!name || name.trim() === '') {
+            throw new Error('Contact name is required');
+        }
+        if (!email || email.trim() === '') {
+            throw new Error('Contact email is required');
+        }
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email.trim())) {
+            throw new Error(`Invalid email address: ${email}`);
+        }
+
         spinner.start();
         const contactService = await initializeContactService();
         spinner.succeed('Contact service initialized');
@@ -586,6 +749,14 @@ export async function searchContacts(query: string): Promise<void> {
     const spinner = createSpinner('Initializing contact service...');
     
     try {
+        // Validate query
+        if (!query || query.trim() === '') {
+            throw new Error('Search query is required');
+        }
+        if (query.trim().length < 2) {
+            throw new Error('Search query must be at least 2 characters');
+        }
+
         spinner.start();
         const contactService = await initializeContactService();
         spinner.succeed('Contact service initialized');
@@ -616,6 +787,11 @@ export async function deleteContact(contactId: string): Promise<void> {
     const spinner = createSpinner('Initializing contact service...');
     
     try {
+        // Validate contact ID
+        if (!contactId || contactId.trim() === '') {
+            throw new Error('Contact ID is required');
+        }
+
         spinner.start();
         const contactService = await initializeContactService();
         spinner.succeed('Contact service initialized');
@@ -635,6 +811,22 @@ export async function updateContact(contactId: string, updates: any): Promise<vo
     const spinner = createSpinner('Initializing contact service...');
     
     try {
+        // Validate input
+        if (!contactId || contactId.trim() === '') {
+            throw new Error('Contact ID is required');
+        }
+        if (!updates || Object.keys(updates).length === 0) {
+            throw new Error('At least one field to update is required');
+        }
+        
+        // Validate email if provided
+        if (updates.email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(updates.email.trim())) {
+                throw new Error(`Invalid email address: ${updates.email}`);
+            }
+        }
+
         spinner.start();
         const contactService = await initializeContactService();
         spinner.succeed('Contact service initialized');
@@ -654,6 +846,11 @@ export async function getContactGroup(group: string): Promise<void> {
     const spinner = createSpinner('Initializing contact service...');
     
     try {
+        // Validate group name
+        if (!group || group.trim() === '') {
+            throw new Error('Group name is required');
+        }
+
         spinner.start();
         const contactService = await initializeContactService();
         spinner.succeed('Contact service initialized');

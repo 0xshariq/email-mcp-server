@@ -529,9 +529,6 @@ program.configureHelp({
     }
 });
 
-// Override help command with custom styled output
-program.addHelpCommand(false);
-
 program
     .command('help [command]')
     .description('display help for command')
