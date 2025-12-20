@@ -2,51 +2,102 @@
 
 This document lists all commands provided by the project, grouped by category. Each command includes a short purpose, a usage synopsis, options (when applicable), and examples.
 
-## Setup (email-cli / email-cli setup)
+---
 
-Purpose: Configure credentials and SMTP/IMAP settings for the CLI. The primary entrypoint is `email-cli` which also exposes a `setup` subcommand for guided or non-interactive configuration.
+## Setup and Configuration
+
+### setup
+
+Purpose: Interactive wizard to configure email credentials and SMTP/IMAP settings. Automatically detects popular email providers (Gmail, Outlook, Yahoo, iCloud) and saves configuration locally or globally across platforms.
 
 Synopsis:
 
 ```bash
-# interactive (guided)
-email-cli setup [--mask] [--use-keychain] [--test-send] [--force]
-
-# non-interactive (CI/scripting)
-email-cli setup --email-user <user@domain> --email-pass <password> [--use-keychain] [--profile <name>] [--ci|--non-interactive]
+# Interactive setup wizard (recommended)
+email-cli setup
 ```
 
-Global flags and behavior:
+**Features:**
 
-- `--profile <name>` — Save or apply settings under a named profile (future multi-profile support). When provided, settings will be keyed by profile.
-- `--ci` or `--non-interactive` — Run non-interactively (suitable for CI); requires `--email-user` and `--email-pass` to be provided on the command line or via environment variables.
+- **Auto-Detection**: Automatically detects SMTP/IMAP settings for popular providers
+- **Masked Password Input**: Secure password entry with masked characters
+- **Multiple Save Options**:
+  - Local: `.env` file in current directory (development)
+  - Global: System environment variables (production)
+    - Linux/macOS: `~/.bashrc`, `~/.zshrc`, or `~/.profile`
+    - Windows: System Environment Variables via registry
+  - Both: Save to both locations for maximum compatibility
+- **Supported Providers**: Gmail, Outlook, Hotmail, Yahoo, iCloud, and custom SMTP/IMAP servers
 
-Setup-specific flags:
+**Required Information:**
 
-- `--mask` — Mask password input during interactive prompt (default: visible input unless requested).
-- `--use-keychain` — Attempt to store password securely in the OS keychain (requires `keytar` at runtime). If keytar is unavailable the CLI falls back to writing to the `.env` or `~/.email-mcp-env` as plaintext.
-- `--test-send` — After verifying credentials, send a tiny test email to a recipient you provide to confirm end-to-end capability.
-- `--force`, `-f` — Overwrite persisted settings if they already exist.
-- `--email-user <user>` — Supply EMAIL_USER non-interactively (useful with `--ci`).
-- `--email-pass <pass>` — Supply EMAIL_PASS non-interactively (useful with `--ci`).
+The setup wizard will ask for:
 
-Notes:
+1. **Email address** (e.g., user@gmail.com)
+2. **Password or App Password** (masked input)
+3. **Server settings** (auto-detected or manual):
+   - SMTP Host (e.g., smtp.gmail.com)
+   - SMTP Port (default: 587)
+   - IMAP Host (e.g., imap.gmail.com)
+   - IMAP Port (default: 993)
 
-- Running `email-cli --help` will print the full `docs/commands.md` content for convenience.
-- When `--use-keychain` successfully stores the password in the keyring, the CLI will avoid leaving the password in local files. When keytar is not available, the CLI persists to `~/.email-mcp-env` and the local `.env` as a fallback.
+**Automatic Configuration:**
+
+Additional environment variables are automatically set:
+
+- `EMAIL_FROM`: Same as EMAIL_USER
+- `IMAP_TLS`: true (secure connection)
+- `SMTP_SECURE`: false (STARTTLS on port 587)
 
 Examples:
 
 ```bash
-# Interactive guided setup
+# Run interactive setup wizard
 email-cli setup
 
-# Non-interactive CI-friendly setup (avoid hardcoding secrets in shell history - use CI secrets)
-email-cli setup --email-user ci-bot@example.com --email-pass "$CI_EMAIL_PASS" --ci --use-keychain --profile default
+# After setup completes (Linux/macOS):
+source ~/.bashrc  # Or ~/.zshrc
+email-cli send test@example.com "Test" "Hello!"
 
-# Interactive setup with masked input and keychain storage
-email-cli setup --mask --use-keychain --test-send
+# After setup completes (Windows):
+# Restart PowerShell/CMD
+email-cli send test@example.com "Test" "Hello!"
 ```
+
+**Setup Process:**
+
+```
+Step 1/3: Email Credentials
+──────────────────────────────────────────────────
+📧 Email address: user@gmail.com
+🔑 Password: ********
+
+Step 2/3: Server Configuration
+──────────────────────────────────────────────────
+✓ Auto-detected settings for gmail.com
+  SMTP Server: smtp.gmail.com:587
+  IMAP Server: imap.gmail.com:993
+Use these settings? [Y/n]: y
+
+Step 3/3: Save Configuration
+──────────────────────────────────────────────────
+  [1] 📁 Local (.env file)
+  [2] 🌍 Global (System environment)
+  [3] 📁 + 🌍 Both locations
+Select option [1-3]: 3
+
+✓ Setup Completed!
+```
+
+**Notes:**
+
+- For Gmail/Google Workspace: Use [App Passwords](https://support.google.com/accounts/answer/185833) instead of your regular password
+- For Outlook/Hotmail: You may need to enable [App Passwords](https://support.microsoft.com/account-billing/manage-app-passwords-for-two-step-verification-d6dc8c6d-4bf7-4851-ad95-6d07799387e9)
+- Custom SMTP/IMAP servers: Choose manual configuration when provider is not auto-detected
+
+---
+
+## Basic Email Commands
 
 ## Basic commands
 

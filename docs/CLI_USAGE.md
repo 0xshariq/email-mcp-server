@@ -155,18 +155,122 @@ Email MCP Server can be used in two ways with different configuration approaches
 
 This file documents only the top-level `email-cli` helper and installer commands. Full command reference (send, bulk, attach, contacts, etc.) lives in `docs/commands.md` and is printed by `email-cli --help`.
 
+## 📋 Quick Start: Setup Command
+
+**The easiest way to get started is with the interactive setup wizard:**
+
+```bash
+email-cli setup
+```
+
+This interactive wizard will:
+- ✅ Ask for your email credentials (with masked password input)
+- ✅ Auto-detect SMTP/IMAP settings for popular providers (Gmail, Outlook, Yahoo, iCloud)
+- ✅ Save configuration locally or globally (your choice)
+- ✅ Guide you through the entire process step-by-step
+
+**No manual environment variable configuration needed!**
+
+### Setup Wizard Features
+
+The `email-cli setup` command provides:
+
+1. **Auto-Detection**: Automatically configures settings for:
+   - Gmail (smtp.gmail.com / imap.gmail.com)
+   - Outlook/Hotmail (smtp-mail.outlook.com / outlook.office365.com)
+   - Yahoo (smtp.mail.yahoo.com / imap.mail.yahoo.com)
+   - iCloud (smtp.mail.me.com / imap.mail.me.com)
+   - Custom SMTP/IMAP servers
+
+2. **Flexible Storage Options**:
+   - **Local**: `.env` file (development, project-specific)
+   - **Global**: System environment variables (production, permanent)
+     - Linux: `~/.bashrc` or `~/.zshrc`
+     - macOS: `~/.zshrc`
+     - Windows: System Environment Variables
+   - **Both**: Maximum compatibility
+
+3. **Security Features**:
+   - Masked password input (shows `*****`)
+   - Validates email format
+   - Secure storage in shell profiles
+
+### Setup Example
+
+```bash
+$ email-cli setup
+
+╔════════════════════════════════════════════╗
+║     📧 Email CLI Configuration Setup      ║
+╚════════════════════════════════════════════╝
+
+Step 1/3: Email Credentials
+──────────────────────────────────────────────────
+📧 Email address: user@gmail.com
+🔑 Password/App Password: **********
+✓ Credentials saved
+
+Step 2/3: Server Configuration
+──────────────────────────────────────────────────
+✓ Auto-detected settings for gmail.com
+
+  SMTP Server: smtp.gmail.com:587
+  IMAP Server: imap.gmail.com:993
+
+Use these settings? [Y/n]: Y
+✓ Using auto-detected settings
+
+Step 3/3: Save Configuration
+──────────────────────────────────────────────────
+  [1] 📁 Local (.env file)
+  [2] 🌍 Global (System environment)
+  [3] 📁 + 🌍 Both locations
+
+Select option [1-3]: 3
+
+Saving to .env file... ✓
+Saving to ~/.zshrc... ✓
+
+╔════════════════════════════════════════════╗
+║          ✓ Setup Completed!                ║
+╚════════════════════════════════════════════╝
+
+⚠️  Action Required:
+  → Run: source ~/.zshrc
+  → Or restart your terminal
+
+📋 Next Steps:
+
+Test your configuration:
+  $ email-cli send recipient@example.com "Test" "Hello!"
+
+View all commands:
+  $ email-cli --help
+```
+
+---
+
 ## 📋 Important: Environment Configuration
 
 **The MCP server and CLI use the same environment configuration!**
 
 📖 **[Complete Configuration Guide](CONFIGURATION.md)** - Comprehensive setup for all platforms
 
-### Quick Reference:
+### Configuration Methods:
+
+**Option 1: Use Setup Wizard (Recommended)**
+```bash
+email-cli setup
+```
+
+**Option 2: Manual Configuration**
 - **Local Development**: Use `.env` file in project directory (both server & CLI)
 - **Global Installation**: Set environment variables in shell profile or system settings
   - Linux: `~/.bashrc`
   - macOS: `~/.zshrc`
   - Windows: System Environment Variables or PowerShell `$PROFILE`
+
+---
 
 ## Synopsis
 
@@ -174,8 +278,12 @@ email-cli [subcommand] [options]
 
 ## Top-level subcommands
 
-- setup [--force|-f] [--mask] [--use-keychain] [--test-send]
-  - Run interactive setup to configure EMAIL_USER and EMAIL_PASS, attempt SMTP/IMAP auto-detection and verification, and persist recommended settings.
+- setup
+  - Interactive wizard to configure email credentials and SMTP/IMAP settings
+  - Auto-detects popular providers (Gmail, Outlook, Yahoo, iCloud)
+  - Saves configuration locally (.env) or globally (system environment)
+  - Supports custom SMTP/IMAP servers
+  - **Recommended**: Start here for first-time setup
 
 - update
   - Update the installed package to the latest version (uses npm/pnpm).
@@ -185,6 +293,39 @@ email-cli [subcommand] [options]
 
 - --version, -v
   - Print CLI and package version information.
+
+## Setup Command Details
+
+The `setup` command provides an interactive wizard for easy configuration:
+
+**Basic Usage:**
+```bash
+email-cli setup
+```
+
+**What it configures:**
+- EMAIL_USER: Your email address
+- EMAIL_PASS: Your password or app password
+- SMTP_HOST: SMTP server address (auto-detected or manual)
+- SMTP_PORT: SMTP port (default: 587)
+- IMAP_HOST: IMAP server address (auto-detected or manual)
+- IMAP_PORT: IMAP port (default: 993)
+- EMAIL_FROM: Sender address (defaults to EMAIL_USER)
+- IMAP_TLS: Enable TLS for IMAP (default: true)
+- SMTP_SECURE: SMTP security mode (default: false, uses STARTTLS)
+
+**Supported Email Providers:**
+- ✅ Gmail (gmail.com) - **Requires App Password**
+- ✅ Outlook/Hotmail (outlook.com, hotmail.com)
+- ✅ Yahoo Mail (yahoo.com)
+- ✅ iCloud (icloud.com)
+- ✅ Custom SMTP/IMAP servers
+
+**Platform Support:**
+- ✅ Linux (saves to ~/.bashrc or ~/.zshrc)
+- ✅ macOS (saves to ~/.zshrc)
+- ✅ Windows (saves to System Environment Variables)
+- ✅ WSL (same as Linux)
 
 ## Global flags (supported by `email-cli` and `email-cli setup`)
 
