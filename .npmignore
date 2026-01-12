@@ -24,6 +24,12 @@ examples/
 # Development scripts and setup
 setup-symlinks.sh
 install-cli.sh
+docker-build.sh
+
+# Docker Files
+Dockerfile
+docker-compose.yml
+.dockerignore
 
 # Test files
 test/
