@@ -1,6 +1,6 @@
 {
   "name": "@0xshariq/email-mcp-server",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A MCP Server + CLI Tool that perform email operations",
   "keywords": [
     "email",
